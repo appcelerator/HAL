@@ -66,75 +66,38 @@ namespace HAL { namespace detail {
     // Only JSExportClass can access our private member variables.
     template<typename U>
     friend class JSExportClass;
-    
-    std::unordered_set<std::string>               named_constants__;
-    JSExportNamedValuePropertyCallbackMap_t<T>    named_value_property_callback_map__;
-    JSExportNamedFunctionPropertyCallbackMap_t<T> named_function_property_callback_map__;
-    HasPropertyCallback<T>                        has_property_callback__        { nullptr };
-    GetPropertyCallback<T>                        get_property_callback__        { nullptr };
-    SetPropertyCallback<T>                        set_property_callback__        { nullptr };
-    DeletePropertyCallback<T>                     delete_property_callback__     { nullptr };
-    GetPropertyNamesCallback<T>                   get_property_names_callback__  { nullptr };
-    CallAsFunctionCallback<T>                     call_as_function_callback__    { nullptr };
-    ConvertToTypeCallback<T>                      convert_to_type_callback__     { nullptr };
+
+	friend class JSExportClassDefinitionBuilder<T>;
+
+    static std::unordered_set<std::string>               named_constants__;
+	static JSExportNamedValuePropertyCallbackMap_t<T>    named_value_property_callback_map__;
+	static JSExportNamedFunctionPropertyCallbackMap_t<T> named_function_property_callback_map__;
+    static HasPropertyCallback<T>                        has_property_callback__;
+	static GetPropertyCallback<T>                        get_property_callback__ ;
+	static SetPropertyCallback<T>                        set_property_callback__;
+	static DeletePropertyCallback<T>                     delete_property_callback__;
+	static GetPropertyNamesCallback<T>                   get_property_names_callback__;
+	static CallAsFunctionCallback<T>                     call_as_function_callback__;
+	static ConvertToTypeCallback<T>                      convert_to_type_callback__;
   };
-  
+
   template<typename T>
   JSExportClassDefinition<T>::JSExportClassDefinition(const JSExportClassDefinition<T>& rhs) HAL_NOEXCEPT
-  : JSClassDefinition(rhs)
-  , named_constants__(rhs.named_constants__)
-  , named_value_property_callback_map__(rhs.named_value_property_callback_map__)
-  , named_function_property_callback_map__(rhs.named_function_property_callback_map__)
-  , has_property_callback__(rhs.has_property_callback__)
-  , get_property_callback__(rhs.get_property_callback__)
-  , set_property_callback__(rhs.set_property_callback__)
-  , delete_property_callback__(rhs.delete_property_callback__)
-  , get_property_names_callback__(rhs.get_property_names_callback__)
-  , call_as_function_callback__(rhs.call_as_function_callback__)
-  , convert_to_type_callback__(rhs.convert_to_type_callback__) {
+  : JSClassDefinition(rhs) {
     InitializeNamedPropertyCallbacks();
-    
-//    std::clog << "MDL: copy ctor" << std::endl;
-//    Print();
   }
   
   template<typename T>
   JSExportClassDefinition<T>::JSExportClassDefinition(JSExportClassDefinition<T>&& rhs) HAL_NOEXCEPT
-  : JSClassDefinition(rhs)
-  , named_constants__(std::move(rhs.named_constants__))
-  , named_value_property_callback_map__(std::move(rhs.named_value_property_callback_map__))
-  , named_function_property_callback_map__(std::move(rhs.named_function_property_callback_map__))
-  , has_property_callback__(std::move(rhs.has_property_callback__))
-  , get_property_callback__(std::move(rhs.get_property_callback__))
-  , set_property_callback__(std::move(rhs.set_property_callback__))
-  , delete_property_callback__(std::move(rhs.delete_property_callback__))
-  , get_property_names_callback__(std::move(rhs.get_property_names_callback__))
-  , call_as_function_callback__(std::move(rhs.call_as_function_callback__))
-  , convert_to_type_callback__(std::move(rhs.convert_to_type_callback__)) {
+  : JSClassDefinition(rhs) {
     InitializeNamedPropertyCallbacks();
-    
-//    std::clog << "MDL: move ctor" << std::endl;
-//    Print();
   }
   
   template<typename T>
   JSExportClassDefinition<T>& JSExportClassDefinition<T>::operator=(const JSExportClassDefinition<T>& rhs) HAL_NOEXCEPT {
     HAL_JSCLASSDEFINITION_LOCK_GUARD;
     JSClassDefinition::operator=(rhs);
-    named_constants__                      = rhs.named_constants__;
-    named_value_property_callback_map__    = rhs.named_value_property_callback_map__;
-    named_function_property_callback_map__ = rhs.named_function_property_callback_map__;
-    has_property_callback__                = rhs.has_property_callback__;
-    get_property_callback__                = rhs.get_property_callback__;
-    set_property_callback__                = rhs.set_property_callback__;
-    delete_property_callback__             = rhs.delete_property_callback__;
-    get_property_names_callback__          = rhs.get_property_names_callback__;
-    call_as_function_callback__            = rhs.call_as_function_callback__;
-    convert_to_type_callback__             = rhs.convert_to_type_callback__;
     InitializeNamedPropertyCallbacks();
-    
-//    std::clog << "MDL: copy assignment" << std::endl;
-//    Print();
     
     return *this;
     }
@@ -145,9 +108,6 @@ namespace HAL { namespace detail {
       swap(rhs);
       InitializeNamedPropertyCallbacks();
       
-//      std::clog << "MDL: move assignment" << std::endl;
-//      Print();
-      
       return *this;
     }
     
@@ -155,20 +115,6 @@ namespace HAL { namespace detail {
     void JSExportClassDefinition<T>::swap(JSExportClassDefinition<T>& other) HAL_NOEXCEPT {
       HAL_JSCLASSDEFINITION_LOCK_GUARD;
       JSClassDefinition::swap(other);
-      using std::swap;
-      
-      // By swapping the members of two classes, the two classes are
-      // effectively swapped.
-      swap(named_constants__                     , other.named_constants__);
-      swap(named_value_property_callback_map__   , other.named_value_property_callback_map__);
-      swap(named_function_property_callback_map__, other.named_function_property_callback_map__);
-      swap(has_property_callback__               , other.has_property_callback__);
-      swap(get_property_callback__               , other.get_property_callback__);
-      swap(set_property_callback__               , other.set_property_callback__);
-      swap(delete_property_callback__            , other.delete_property_callback__);
-      swap(get_property_names_callback__         , other.get_property_names_callback__);
-      swap(call_as_function_callback__           , other.call_as_function_callback__);
-      swap(convert_to_type_callback__            , other.convert_to_type_callback__);
     }
     
     template<typename T>

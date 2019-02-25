@@ -363,7 +363,7 @@ namespace HAL { namespace detail {
      */
     
     HasPropertyCallback<T> HasProperty() const HAL_NOEXCEPT {
-      return has_property_callback__;
+      return JSExportClassDefinition<T>::has_property_callback__;
     }
     
     /*!
@@ -401,7 +401,7 @@ namespace HAL { namespace detail {
      */
     JSExportClassDefinitionBuilder<T>& HasProperty(const HasPropertyCallback<T>& has_property_callback) HAL_NOEXCEPT {
       HAL_DETAIL_JSEXPORTCLASSDEFINITIONBUILDER_LOCK_GUARD;
-      has_property_callback__ = has_property_callback;
+	  JSExportClassDefinition<T>::has_property_callback__ = has_property_callback;
       return *this;
     }
     
@@ -415,7 +415,7 @@ namespace HAL { namespace detail {
      from your JavaScript object.
      */
     GetPropertyCallback<T> GetProperty() const HAL_NOEXCEPT {
-      return get_property_callback__;
+      return JSExportClassDefinition<T>::get_property_callback__;
     }
     
     /*!
@@ -445,7 +445,7 @@ namespace HAL { namespace detail {
      */
     JSExportClassDefinitionBuilder<T>& GetProperty(const GetPropertyCallback<T>& get_property_callback) HAL_NOEXCEPT {
       HAL_DETAIL_JSEXPORTCLASSDEFINITIONBUILDER_LOCK_GUARD;
-      get_property_callback__ = get_property_callback;
+	  JSExportClassDefinition<T>::get_property_callback__ = get_property_callback;
       return *this;
     }
     
@@ -459,7 +459,7 @@ namespace HAL { namespace detail {
      your JavaScript object.
      */
     SetPropertyCallback<T> SetProperty() const HAL_NOEXCEPT {
-      return set_property_callback__;
+      return JSExportClassDefinition<T>::set_property_callback__;
     }
     
     /*!
@@ -489,7 +489,7 @@ namespace HAL { namespace detail {
      */
     JSExportClassDefinitionBuilder<T>& SetProperty(const SetPropertyCallback<T>& set_property_callback) HAL_NOEXCEPT {
       HAL_DETAIL_JSEXPORTCLASSDEFINITIONBUILDER_LOCK_GUARD;
-      set_property_callback__ = set_property_callback;
+	  JSExportClassDefinition<T>::set_property_callback__ = set_property_callback;
       return *this;
     }
     
@@ -503,7 +503,7 @@ namespace HAL { namespace detail {
      JavaScript object.
      */
     DeletePropertyCallback<T> DeleteProperty() const HAL_NOEXCEPT {
-      return delete_property_callback__;
+      return JSExportClassDefinition<T>::delete_property_callback__;
     }
     
     /*!
@@ -533,7 +533,7 @@ namespace HAL { namespace detail {
      */
     JSExportClassDefinitionBuilder<T>& DeleteProperty(const DeletePropertyCallback<T>& delete_property_callback) HAL_NOEXCEPT {
       HAL_DETAIL_JSEXPORTCLASSDEFINITIONBUILDER_LOCK_GUARD;
-      delete_property_callback__ = delete_property_callback;
+	  JSExportClassDefinition<T>::delete_property_callback__ = delete_property_callback;
       return *this;
     }
     
@@ -547,7 +547,7 @@ namespace HAL { namespace detail {
      JavaScript object's properties
      */
     GetPropertyNamesCallback<T> GetPropertyNames() const HAL_NOEXCEPT {
-      return get_property_names_callback__;
+      return JSExportClassDefinition<T>::get_property_names_callback__;
     }
     
     /*!
@@ -582,7 +582,7 @@ namespace HAL { namespace detail {
      */
     JSExportClassDefinitionBuilder<T>& GetPropertyNames(const GetPropertyNamesCallback<T>& get_property_names_callback) HAL_NOEXCEPT {
       HAL_DETAIL_JSEXPORTCLASSDEFINITIONBUILDER_LOCK_GUARD;
-      get_property_names_callback__ = get_property_names_callback;
+	  JSExportClassDefinition<T>::get_property_names_callback__ = get_property_names_callback;
       return *this;
     }
     
@@ -596,7 +596,7 @@ namespace HAL { namespace detail {
      called as a function.
      */
     CallAsFunctionCallback<T> CallAsFunction() const HAL_NOEXCEPT {
-      return call_as_function_callback__;
+      return JSExportClassDefinition<T>::call_as_function_callback__;
     }
     
     /*!
@@ -629,7 +629,7 @@ namespace HAL { namespace detail {
      */
     JSExportClassDefinitionBuilder<T>& CallAsFunction(const CallAsFunctionCallback<T>& call_as_function_callback) HAL_NOEXCEPT {
       HAL_DETAIL_JSEXPORTCLASSDEFINITIONBUILDER_LOCK_GUARD;
-      call_as_function_callback__ = call_as_function_callback;
+	  JSExportClassDefinition<T>::call_as_function_callback__ = call_as_function_callback;
       return *this;
     }
     
@@ -643,7 +643,7 @@ namespace HAL { namespace detail {
      object to another JavaScript type.
      */
     ConvertToTypeCallback<T> ConvertToType() const HAL_NOEXCEPT {
-      return convert_to_type_callback__;
+      return JSExportClassDefinition<T>::convert_to_type_callback__;
     }
     
     /*!
@@ -674,7 +674,7 @@ namespace HAL { namespace detail {
      */
     JSExportClassDefinitionBuilder<T>& ConvertToType(const ConvertToTypeCallback<T>& convert_to_type_callback) HAL_NOEXCEPT {
       HAL_DETAIL_JSEXPORTCLASSDEFINITIONBUILDER_LOCK_GUARD;
-      convert_to_type_callback__ = convert_to_type_callback;
+      JSExportClassDefinition<T>::convert_to_type_callback__ = convert_to_type_callback;
       return *this;
     }
     
@@ -703,16 +703,6 @@ namespace HAL { namespace detail {
     ::JSClassDefinition                           js_class_definition__;
     std::string                                   name__;
     JSClass                                       parent__;
-    std::unordered_set<std::string>               named_constants__;
-    JSExportNamedValuePropertyCallbackMap_t<T>    named_value_property_callback_map__;
-    JSExportNamedFunctionPropertyCallbackMap_t<T> named_function_property_callback_map__;
-    HasPropertyCallback<T>                        has_property_callback__        { nullptr };
-    GetPropertyCallback<T>                        get_property_callback__        { nullptr };
-    SetPropertyCallback<T>                        set_property_callback__        { nullptr };
-    DeletePropertyCallback<T>                     delete_property_callback__     { nullptr };
-    GetPropertyNamesCallback<T>                   get_property_names_callback__  { nullptr };
-    CallAsFunctionCallback<T>                     call_as_function_callback__    { nullptr };
-    ConvertToTypeCallback<T>                      convert_to_type_callback__     { nullptr };
 
     HAL_DETAIL_JSEXPORTCLASSDEFINITIONBUILDER_MUTEX;
   };
@@ -721,15 +711,15 @@ namespace HAL { namespace detail {
   void JSExportClassDefinitionBuilder<T>::AddConstantPropertyCallback(const JSExportNamedValuePropertyCallback<T>& value_property_callback) {
     const std::string internal_component_name = "JSExportClassDefinitionBuilder<" + name__ + ">::AddConstantPropertyCallback";
     const auto property_name                  = value_property_callback.get_name();
-    const auto position                       = named_constants__.find(property_name);
-    const bool found                          = position != named_constants__.end();
+    const auto position                       = JSExportClassDefinition<T>::named_constants__.find(property_name);
+    const bool found                          = position != JSExportClassDefinition<T>::named_constants__.end();
     
     if (found) {
       const std::string message = "Constant property " + property_name + " already added";
       ThrowInvalidArgument(internal_component_name, message);
     }
     
-    const auto callback_insert_result = named_constants__.emplace(property_name);
+    const auto callback_insert_result = JSExportClassDefinition<T>::named_constants__.emplace(property_name);
     const bool callback_inserted      = callback_insert_result.second;
     
     assert(callback_inserted);
@@ -741,15 +731,15 @@ namespace HAL { namespace detail {
   void JSExportClassDefinitionBuilder<T>::AddValuePropertyCallback(const JSExportNamedValuePropertyCallback<T>& value_property_callback) {
     const std::string internal_component_name = "JSExportClassDefinitionBuilder<" + name__ + ">::AddValuePropertyCallback";
     const auto property_name                  = value_property_callback.get_name();
-    const auto position                       = named_value_property_callback_map__.find(property_name);
-    const bool found                          = position != named_value_property_callback_map__.end();
+    const auto position                       = JSExportClassDefinition<T>::named_value_property_callback_map__.find(property_name);
+    const bool found                          = position != JSExportClassDefinition<T>::named_value_property_callback_map__.end();
     
     if (found) {
       const std::string message = "Value property " + property_name + " already added";
       ThrowInvalidArgument(internal_component_name, message);
     }
     
-    const auto callback_insert_result = named_value_property_callback_map__.emplace(property_name, value_property_callback);
+    const auto callback_insert_result = JSExportClassDefinition<T>::named_value_property_callback_map__.emplace(property_name, value_property_callback);
     const bool callback_inserted      = callback_insert_result.second;
     
     // HAL_LOG_DEBUG(internal_component_name, ": value property ", property_name, " inserted = ", callback_inserted);
@@ -760,15 +750,15 @@ namespace HAL { namespace detail {
   void JSExportClassDefinitionBuilder<T>::AddFunctionPropertyCallback(const JSExportNamedFunctionPropertyCallback<T>& function_property_callback) {
     const std::string internal_component_name = "JSExportClassDefinitionBuilder<" + name__ + ">::AddFunctionPropertyCallback";
     const auto property_name                  = function_property_callback.get_name();
-    const auto position                       = named_function_property_callback_map__.find(property_name);
-    const bool found                          = position != named_function_property_callback_map__.end();
+    const auto position                       = JSExportClassDefinition<T>::named_function_property_callback_map__.find(property_name);
+    const bool found                          = position != JSExportClassDefinition<T>::named_function_property_callback_map__.end();
     
     if (found) {
       const std::string message = "Function property " + property_name + " already added.";
       ThrowInvalidArgument(internal_component_name, message);
     }
     
-    const auto callback_insert_result = named_function_property_callback_map__.emplace(property_name, function_property_callback);
+    const auto callback_insert_result = JSExportClassDefinition<T>::named_function_property_callback_map__.emplace(property_name, function_property_callback);
     const bool callback_inserted      = callback_insert_result.second;
     
     // HAL_LOG_DEBUG(internal_component_name, ": function property ", property_name, " inserted = ", callback_inserted);
@@ -787,51 +777,71 @@ namespace HAL { namespace detail {
     js_class_definition__.callAsConstructor = JSExportClass<T>::JSObjectCallAsConstructorCallback;
     js_class_definition__.hasInstance       = JSExportClass<T>::JSObjectHasInstanceCallback;
     
-    if (has_property_callback__) {
+    if (JSExportClassDefinition<T>::has_property_callback__) {
       js_class_definition__.hasProperty = JSExportClass<T>::JSObjectHasPropertyCallback;
     }
     
-    if (get_property_callback__) {
+    if (JSExportClassDefinition<T>::get_property_callback__) {
       js_class_definition__.getProperty = JSExportClass<T>::JSObjectGetPropertyCallback;
     }
     
-    if (set_property_callback__) {
+    if (JSExportClassDefinition<T>::set_property_callback__) {
       js_class_definition__.setProperty = JSExportClass<T>::JSObjectSetPropertyCallback;
     }
     
-    if (delete_property_callback__) {
+    if (JSExportClassDefinition<T>::delete_property_callback__) {
       js_class_definition__.deleteProperty = JSExportClass<T>::JSObjectDeletePropertyCallback;
     }
     
-    if (get_property_names_callback__) {
+    if (JSExportClassDefinition<T>::get_property_names_callback__) {
       js_class_definition__.getPropertyNames = JSExportClass<T>::JSObjectGetPropertyNamesCallback;
     }
     
-    if (call_as_function_callback__) {
+    if (JSExportClassDefinition<T>::call_as_function_callback__) {
       js_class_definition__.callAsFunction = JSExportClass<T>::JSObjectCallAsFunctionCallback;
     }
     
-    if (convert_to_type_callback__) {
+    if (JSExportClassDefinition<T>::convert_to_type_callback__) {
       js_class_definition__.convertToType = JSExportClass<T>::JSObjectConvertToTypeCallback;
     }
     
     return JSExportClassDefinition<T>(*this);
   }
-  
+
+  template<typename T>
+  std::unordered_set<std::string> JSExportClassDefinition<T>::named_constants__;
+
+  template<typename T>
+  JSExportNamedValuePropertyCallbackMap_t<T> JSExportClassDefinition<T>::named_value_property_callback_map__;
+
+  template<typename T>
+  JSExportNamedFunctionPropertyCallbackMap_t<T> JSExportClassDefinition<T>::named_function_property_callback_map__;
+
+  template<typename T>
+  HasPropertyCallback<T> JSExportClassDefinition<T>::has_property_callback__{ nullptr };
+
+  template<typename T>
+  GetPropertyCallback<T> JSExportClassDefinition<T>::get_property_callback__{ nullptr };
+
+  template<typename T>
+  SetPropertyCallback<T> JSExportClassDefinition<T>::set_property_callback__{ nullptr };
+
+  template<typename T>
+  DeletePropertyCallback<T> JSExportClassDefinition<T>::delete_property_callback__{ nullptr };
+
+  template<typename T>
+  GetPropertyNamesCallback<T> JSExportClassDefinition<T>::get_property_names_callback__{ nullptr };
+
+  template<typename T>
+  CallAsFunctionCallback<T> JSExportClassDefinition<T>::call_as_function_callback__{ nullptr };
+
+  template<typename T>
+  ConvertToTypeCallback<T> JSExportClassDefinition<T>::convert_to_type_callback__{ nullptr };
+
   template<typename T>
   JSExportClassDefinition<T>::JSExportClassDefinition(const JSExportClassDefinitionBuilder<T>& builder)
-  : JSClassDefinition(builder.js_class_definition__)
-  , named_constants__(builder.named_constants__)
-  , named_value_property_callback_map__(builder.named_value_property_callback_map__)
-  , named_function_property_callback_map__(builder.named_function_property_callback_map__)
-  , has_property_callback__(builder.has_property_callback__)
-  , get_property_callback__(builder.get_property_callback__)
-  , set_property_callback__(builder.set_property_callback__)
-  , delete_property_callback__(builder.delete_property_callback__)
-  , get_property_names_callback__(builder.get_property_names_callback__)
-  , call_as_function_callback__(builder.call_as_function_callback__)
-  , convert_to_type_callback__(builder.convert_to_type_callback__) {
-    InitializeNamedPropertyCallbacks();
+  : JSClassDefinition(builder.js_class_definition__) {
+	  InitializeNamedPropertyCallbacks();
   }
   
 }} // namespace HAL { namespace detail {
