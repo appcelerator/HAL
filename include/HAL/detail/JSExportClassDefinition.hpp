@@ -17,6 +17,7 @@
 #include "HAL/detail/JSExportNamedFunctionPropertyCallback.hpp"
 #include "HAL/detail/JSExportCallbacks.hpp"
 
+#include <assert.h>
 #include <string>
 #include <unordered_map>
 
@@ -84,30 +85,24 @@ namespace HAL { namespace detail {
   template<typename T>
   JSExportClassDefinition<T>::JSExportClassDefinition(const JSExportClassDefinition<T>& rhs) HAL_NOEXCEPT
   : JSClassDefinition(rhs) {
-    InitializeNamedPropertyCallbacks();
   }
   
   template<typename T>
   JSExportClassDefinition<T>::JSExportClassDefinition(JSExportClassDefinition<T>&& rhs) HAL_NOEXCEPT
   : JSClassDefinition(rhs) {
-    InitializeNamedPropertyCallbacks();
   }
   
   template<typename T>
   JSExportClassDefinition<T>& JSExportClassDefinition<T>::operator=(const JSExportClassDefinition<T>& rhs) HAL_NOEXCEPT {
     HAL_JSCLASSDEFINITION_LOCK_GUARD;
     JSClassDefinition::operator=(rhs);
-    InitializeNamedPropertyCallbacks();
-    
     return *this;
     }
     
     template<typename T>
     JSExportClassDefinition<T>& JSExportClassDefinition<T>::operator=(JSExportClassDefinition<T>&& rhs) HAL_NOEXCEPT {
       HAL_JSCLASSDEFINITION_LOCK_GUARD;
-      swap(rhs);
-      InitializeNamedPropertyCallbacks();
-      
+	  swap(rhs);
       return *this;
     }
     
@@ -124,7 +119,11 @@ namespace HAL { namespace detail {
     
     template<typename T>
     void JSExportClassDefinition<T>::InitializeNamedPropertyCallbacks() HAL_NOEXCEPT {
-      
+
+	  if (js_class_definition__.staticValues || js_class_definition__.staticFunctions) {
+		return;
+	  }
+
       // Initialize staticValues.
       static_values__.clear();
       js_class_definition__.staticValues = nullptr;
