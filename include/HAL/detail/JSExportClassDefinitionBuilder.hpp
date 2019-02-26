@@ -818,25 +818,25 @@ namespace HAL { namespace detail {
   JSExportNamedFunctionPropertyCallbackMap_t<T> JSExportClassDefinition<T>::named_function_property_callback_map__;
 
   template<typename T>
-  HasPropertyCallback<T> JSExportClassDefinition<T>::has_property_callback__{ nullptr };
+  HasPropertyCallback<T> JSExportClassDefinition<T>::has_property_callback__;
 
   template<typename T>
-  GetPropertyCallback<T> JSExportClassDefinition<T>::get_property_callback__{ nullptr };
+  GetPropertyCallback<T> JSExportClassDefinition<T>::get_property_callback__;
 
   template<typename T>
-  SetPropertyCallback<T> JSExportClassDefinition<T>::set_property_callback__{ nullptr };
+  SetPropertyCallback<T> JSExportClassDefinition<T>::set_property_callback__;
 
   template<typename T>
-  DeletePropertyCallback<T> JSExportClassDefinition<T>::delete_property_callback__{ nullptr };
+  DeletePropertyCallback<T> JSExportClassDefinition<T>::delete_property_callback__;
 
   template<typename T>
-  GetPropertyNamesCallback<T> JSExportClassDefinition<T>::get_property_names_callback__{ nullptr };
+  GetPropertyNamesCallback<T> JSExportClassDefinition<T>::get_property_names_callback__;
 
   template<typename T>
-  CallAsFunctionCallback<T> JSExportClassDefinition<T>::call_as_function_callback__{ nullptr };
+  CallAsFunctionCallback<T> JSExportClassDefinition<T>::call_as_function_callback__;
 
   template<typename T>
-  ConvertToTypeCallback<T> JSExportClassDefinition<T>::convert_to_type_callback__{ nullptr };
+  ConvertToTypeCallback<T> JSExportClassDefinition<T>::convert_to_type_callback__;
 
   template<typename T>
   JSExportClassDefinition<T>::JSExportClassDefinition(const JSExportClassDefinitionBuilder<T>& builder)
