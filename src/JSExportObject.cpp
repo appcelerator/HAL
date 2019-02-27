@@ -1,54 +1,33 @@
 /**
- * HAL
- *
- * Copyright (c) 2014 by Appcelerator, Inc. All Rights Reserved.
- * Licensed under the terms of the Apache Public License.
- * Please see the LICENSE included with this distribution for details.
- */
+* HAL
+*
+* Copyright (c) 2018 by Axway. All Rights Reserved.
+* Licensed under the terms of the Apache Public License.
+* Please see the LICENSE included with this distribution for details.
+*/
 
 #include "HAL/JSExportObject.hpp"
-#include "HAL/JSUndefined.hpp"
-#include <utility>
+#include "HAL/JSExport.hpp"
 
 namespace HAL {
-  
-  void JSExportObject::JSExportInitialize() {
-    HAL_LOG_DEBUG("JSExportObject::JSExportInitialize");
-    SetClassVersion(1);
-  }
-	
-  void JSExportObject::postInitialize(JSObject& js_object) {
-    HAL_LOG_DEBUG("JSExportObject:: postInitialize ", this);
-  }
+	JSExportObject::JSExportObject(const JSContext& js_context) HAL_NOEXCEPT
+		: js_context__(js_context) {
+		// NOTHING TO DO
+	}
 
-  void JSExportObject::postCallAsConstructor(const JSContext& js_context, const std::vector<JSValue>& arguments) {
-    HAL_LOG_DEBUG("JSExportObject:: postCallAsConstructor ", this);
-  }
-	
-  JSContext JSExportObject::get_context() const HAL_NOEXCEPT {
-    return js_context__;
-  }
-  
-  JSObject JSExportObject::get_object() HAL_NOEXCEPT {
-    return JSObject::FindJSObjectFromPrivateData(get_context(), this);
-  }
-  
-  JSExportObject::JSExportObject(const JSContext& js_context) HAL_NOEXCEPT
-  : js_context__(js_context) {
-    HAL_LOG_DEBUG("JSExportObject:: ctor ", this);
-  }
-  
-  JSExportObject::~JSExportObject() HAL_NOEXCEPT {
-    HAL_LOG_DEBUG("JSExportObject:: dtor ", this);
-    JSObject::UnRegisterPrivateData(this);
-  }
-  
-  void JSExportObject::swap(JSExportObject& other) HAL_NOEXCEPT {
-    using std::swap;
-    
-    // By swapping the members of two classes, the two classes are
-    // effectively swapped.
-    swap(js_context__  , other.js_context__);
-  }
-  
+	void JSExportObject::postInitialize(JSObject& js_object) {
+		// NOTHING TO DO
+	}
+
+	void JSExportObject::postCallAsConstructor(const JSContext&, const std::vector<JSValue>&) {
+		// NOTHING TO DO
+	}
+
+	void JSExportObject::JSExportInitialize() {
+		// NOTHING TO DO
+	}
+
+	JSObject JSExportObject::get_object() HAL_NOEXCEPT {
+		return JSObject::GetObject(this);
+	}
 } // namespace HAL {

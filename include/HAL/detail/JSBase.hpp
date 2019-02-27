@@ -1,20 +1,13 @@
 /**
  * HAL
  *
- * Copyright (c) 2014 by Appcelerator, Inc. All Rights Reserved.
+ * Copyright (c) 2018 by Axway. All Rights Reserved.
  * Licensed under the terms of the Apache Public License.
  * Please see the LICENSE included with this distribution for details.
  */
 
 #ifndef _HAL_DETAIL_JSBASE_HPP_
 #define _HAL_DETAIL_JSBASE_HPP_
-
-// #define HAL_LOGGING_ENABLE_TRACE
-// #define HAL_LOGGING_ENABLE_DEBUG
-// #define HAL_LOGGING_ENABLE_INFO
-#define HAL_LOGGING_ENABLE_WARN
-#define HAL_LOGGING_ENABLE_ERROR
-// #define HAL_THREAD_SAFE
 
 #define HAL_NOEXCEPT_ENABLE
 #define HAL_MOVE_CTOR_AND_ASSIGN_DEFAULT_ENABLE
@@ -50,28 +43,14 @@
 #define HAL_NOEXCEPT
 #endif
 
-#ifdef HAL_THREAD_SAFE
-#include <mutex>
-#endif
-
 #include "HAL_EXPORT.h"
 
-#include "HAL/detail/JSLogger.hpp"
-#include "HAL/detail/JSPerformanceCounter.hpp"
-#include <JavaScriptCore/JavaScript.h>
+#define USE_EDGEMODE_JSRT
+#define NOMINMAX
+#define NOGDI
 
-#ifdef __APPLE__
-#include <TargetConditionals.h>
-#endif
+#include <jsrt.h>
 
-#if (TARGET_OS_MAC || TARGET_OS_IPHONE)
-/*!
-  @function
-  @abstract Gets the global context of a JavaScript execution context.
-  @param ctx The JSContext whose global context you want to get.
-  @result ctx's global context.
-*/
-extern "C" JSGlobalContextRef JSContextGetGlobalContext(JSContextRef ctx);
-#endif
+#define ASSERT_AND_THROW_JS_ERROR(x) HAL::detail::CheckAndThrowChakraRuntimeError(x);
 
 #endif  // _HAL_DETAIL_JSBASE_HPP_

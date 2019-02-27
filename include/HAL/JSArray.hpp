@@ -1,7 +1,7 @@
 /**
  * HAL
  *
- * Copyright (c) 2014 by Appcelerator, Inc. All Rights Reserved.
+ * Copyright (c) 2018 by Axway. All Rights Reserved.
  * Licensed under the terms of the Apache Public License.
  * Please see the LICENSE included with this distribution for details.
  */
@@ -11,7 +11,6 @@
 
 #include "HAL/JSObject.hpp"
 #include "HAL/JSValue.hpp"
-#include "HAL/JSString.hpp"
 #include <vector>
 
 namespace HAL {
@@ -24,7 +23,7 @@ namespace HAL {
   The only way to create a JSArray is by using the
   JSContext::CreateArray member function.
 */
-class HAL_EXPORT JSArray final : public JSObject HAL_PERFORMANCE_COUNTER2(JSArray) {
+class HAL_EXPORT JSArray final : public JSObject {
 
 public:
     /*!
@@ -91,6 +90,7 @@ public:
      @result Length of this JSArray
      */
     virtual uint32_t GetLength() const HAL_NOEXCEPT final;
+	virtual uint32_t GetCount()  const HAL_NOEXCEPT final;
 
     /*!
      @method
@@ -109,12 +109,8 @@ private:
 	friend JSContext;
 	friend JSObject;
 	
-	JSArray(const JSContext& js_context, const std::vector<JSValue>& arguments = {});
-
-	static JSObjectRef MakeArray(const JSContext& js_context, const std::vector<JSValue>& arguments);
-
-	// For interoperability with the JavaScriptCore C API.
-	JSArray(const JSContext& js_context, JSObjectRef js_object_ref);
+	JSArray(JsValueRef js_object_ref);
+	JSArray(JsValueRef js_object_ref, const std::vector<JSValue>& arguments);
 };
 
 template<typename T>

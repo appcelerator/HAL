@@ -1,7 +1,7 @@
 /**
  * HAL
  *
- * Copyright (c) 2014 by Appcelerator, Inc. All Rights Reserved.
+ * Copyright (c) 2018 by Axway. All Rights Reserved.
  * Licensed under the terms of the Apache Public License.
  * Please see the LICENSE included with this distribution for details.
  */
@@ -11,29 +11,11 @@
 
 #include "HAL/detail/JSBase.hpp"
 #include "HAL/JSContext.hpp"
-
-#include <vector>
-#include <ostream>
+#include "HAL/detail/JSUtil.hpp"
 
 namespace HAL {
-  class JSString;
-  class JSValue;
-  class JSBoolean;
-  class JSNumber;
   class JSObject;
-  class JSFunction;
-  class JSArray;
-  class JSDate;
-  class JSError;
-  class JSRegExp;
-  
-  namespace detail {
-    template<typename T>
-    class JSExportClass;
-    
-    HAL_EXPORT std::vector<JSValue>    to_vector(const JSContext&, size_t, const JSValueRef[]);
-    HAL_EXPORT std::vector<JSValueRef> to_vector(const std::vector<JSValue>&);
-  }}
+}
 
 namespace HAL {
   
@@ -41,7 +23,7 @@ namespace HAL {
    @class
    
    @discussion A JSValue is an RAII wrapper around a JSValueRef, the
-   JavaScriptCore C API representation of a JavaScript value. This is
+   JSRT API representation of a JavaScript value. This is
    the base class for all JavaScript values. These are the direct
    descendants of JSValue:
    
@@ -53,7 +35,7 @@ namespace HAL {
    The only way to create a JSValue is by using the
    JSContext::CreateXXX member functions.
    */
-  class HAL_EXPORT JSValue HAL_PERFORMANCE_COUNTER1(JSValue) {
+  class HAL_EXPORT JSValue {
     
   public:
     
@@ -171,16 +153,6 @@ namespace HAL {
     /*!
      @method
      
-     @abstract Return this JavaScript value's type.
-     
-     @result A value of type JSValue::Type that identifies this
-     JavaScript value's type.
-     */
-    virtual Type GetType() const HAL_NOEXCEPT final;
-    
-    /*!
-     @method
-     
      @abstract Determine whether this JavaScript value's type is the
      undefined type.
      
@@ -198,16 +170,6 @@ namespace HAL {
      @result true if this JavaScript value's type is the null type.
      */
     virtual bool IsNull() const HAL_NOEXCEPT final;
-		
-    /*!
-     @method
-     
-     @abstract Determine whether this JavaScript value's type is the
-     null type.
-     
-     @result true if this JavaScript value's type is the null type.
-     */
-    virtual bool IsNativeNull() const HAL_NOEXCEPT final;
 		
     /*!
      @method
@@ -252,63 +214,12 @@ namespace HAL {
     /*!
      @method
      
-     @abstract Determine whether this JavaScript's value is an object
-     with a given class in its class chain.
-     
-     @param jsClass The JSClass to test against.
-     
-     @result true if this JavaScript value is an object with a given
-     class in its class chain.
-     */
-    virtual bool IsObjectOfClass(const JSClass& js_class) const HAL_NOEXCEPT final;
-    
-    /*!
-     @method
-     
-     @abstract Determine whether this JavaScript value was constructed
-     by the given constructor, as compared by the JavaScript
-     'instanceof' operator.
-     
-     @param constructor The constructor to test against.
-     
-     @result true if this JavaScript value was constructed by the
-     given constructor as compared by the JavaScript 'instanceof'
-     operator.
-     */
-    virtual bool IsInstanceOfConstructor(const JSObject& constructor) const final;
-    
-    /*!
-     @method
-     
-     @abstract Determine whether this JavaScript value is equal to
-     another JavaScript by usong the JavaScript == operator.
-     
-     @param js_value The JavaScript value to test.
-     
-     @result true this JavaScript value is equal to another JavaScript
-     by usong the JavaScript == operator.
-     */
-    virtual bool IsEqualWithTypeCoercion(const JSValue& js_value) const final;
-    
-    /*!
-     @method
-     
      @abstract Return the execution context of this JavaScript value.
      
      @result The the execution context of this JavaScript value.
      */
     virtual JSContext get_context() const HAL_NOEXCEPT final {
-      return js_context__;
-    }
-
-    /*!
-     @method
- 
-     @abstract Mark this value as native nullptr. 
-               For interoperability with the JavaScriptCore C API.
-     */
-    virtual void MarkAsNativeNull() HAL_NOEXCEPT final {
-      is_native_nullptr__ = true;
+      return JSContext(detail::GetContextRef());
     }
     
     virtual ~JSValue()           HAL_NOEXCEPT;
@@ -317,14 +228,11 @@ namespace HAL {
     JSValue& operator=(JSValue);
     void swap(JSValue&)          HAL_NOEXCEPT;
 
-    // For interoperability with the JavaScriptCore C API.
-    JSValue(const JSContext& js_context, JSValueRef js_value_ref) HAL_NOEXCEPT;
+    // For interoperability with the JSRT API.
+    JSValue(JsValueRef js_value_ref) HAL_NOEXCEPT;
     
-    // For interoperability with the JavaScriptCore C API.
-    explicit operator JSValueRef() const HAL_NOEXCEPT {
-      if (is_native_nullptr__) {
-        return nullptr;
-      }
+    // For interoperability with the JSRT API.
+    explicit operator JsValueRef() const HAL_NOEXCEPT {
       return js_value_ref__;
     }
      
@@ -333,56 +241,30 @@ namespace HAL {
     // A JSContext can create a JSValue.
     friend class JSContext;
     
-    JSValue(const JSContext& js_context, const JSString& js_string, bool parse_as_json = false);
+    JSValue(const JSString& js_string, bool parse_as_json = false);
   
     // These classes and functions need access to operator
     // JSValueRef().
     HAL_EXPORT friend bool operator==(const JSValue& lhs, const JSValue& rhs) HAL_NOEXCEPT;
-    
-    HAL_EXPORT friend std::vector<JSValue>    detail::to_vector(const JSContext&, size_t, const JSValueRef[]);
-    HAL_EXPORT friend std::vector<JSValueRef> detail::to_vector(const std::vector<JSValue>&);
-
-    void Protect();
-    void Unprotect();
     
   private:
     
     // Prevent heap based objects.
     static void * operator new(std::size_t);     // #1: To prevent allocation of scalar objects
     static void * operator new [] (std::size_t); // #2: To prevent allocation of array of objects
-    
-    JSContext  js_context__;
-		
-    bool is_native_nullptr__{false};
 
     // Silence 4251 on Windows since private member variables do not
     // need to be exported from a DLL.
 #pragma warning(push)
 #pragma warning(disable: 4251)
-    JSValueRef js_value_ref__ { nullptr };
-    static std::unordered_map<std::intptr_t, std::size_t> js_value_retain_count_map__;
+    JsValueRef js_value_ref__ { nullptr };
 #pragma warning(pop)
-    
-#undef  HAL_JSVALUE_LOCK_GUARD
-#ifdef  HAL_THREAD_SAFE
-    std::recursive_mutex mutex__;
-#define HAL_JSVALUE_LOCK_GUARD std::lock_guard<std::recursive_mutex> lock(mutex__)
-#else
-#define HAL_JSVALUE_LOCK_GUARD
-#endif  // HAL_THREAD_SAFE
   };
   
   inline
   void swap(JSValue& first, JSValue& second) HAL_NOEXCEPT {
     first.swap(second);
   }
-  
-  inline
-  std::string to_string(const JSValue& js_value) {
-    return static_cast<std::string>(js_value);
-  }
-  
-  HAL_EXPORT std::string to_string(const JSValue::Type& js_value_type) HAL_NOEXCEPT;
   
   /*!
    @function
@@ -403,33 +285,6 @@ namespace HAL {
   inline
   bool operator!=(const JSValue& lhs, const JSValue& rhs) HAL_NOEXCEPT {
     return ! (lhs == rhs);
-  }
-  
-  /*!
-   @function
-   
-   @abstract Determine whether two JavaScript values are equal, as
-   compared by the JS == operator.
-   
-   @param lhs The first value to test.
-   
-   @param rhs The second value to test.
-   
-   @result true if the two values are equal, false if they are not
-   equal.
-   */
-  HAL_EXPORT bool IsEqualWithTypeCoercion(const JSValue& lhs, const JSValue& rhs);
-  
-  inline
-  std::ostream& operator << (std::ostream& ostream, const JSValue& js_value) {
-    ostream << to_string(js_value);
-    return ostream;
-  }
-  
-  inline
-  std::ostream& operator << (std::ostream& ostream, const JSValue::Type& js_value_type) {
-    ostream << to_string(js_value_type);
-    return ostream;
   }
   
 } // namespace HAL {

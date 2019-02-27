@@ -1,6 +1,6 @@
 # HAL
 #
-# Copyright (c) 2014 by Appcelerator, Inc. All Rights Reserved.
+# Copyright (c) 2019 by Axway. All Rights Reserved.
 # Licensed under the terms of the Apache Public License.
 # Please see the LICENSE included with this distribution for details.
 cmake_minimum_required(VERSION 3.13)
@@ -56,12 +56,8 @@ set(SOURCE_HAL
 
 set(SOURCE_HAL_detail
   include/HAL/detail/JSBase.hpp
-  src/detail/JSBase.cpp
   include/HAL/detail/JSUtil.hpp
   src/detail/JSUtil.cpp
-  include/HAL/detail/HashUtilities.hpp
-  include/HAL/detail/JSPerformanceCounter.hpp
-  include/HAL/detail/JSPerformanceCounterPrinter.hpp
 )
 
 set(SOURCE_JSExport
@@ -70,34 +66,10 @@ set(SOURCE_JSExport
   src/JSExportObject.cpp
 )
 
-set(SOURCE_JSExport_detail
-  include/HAL/detail/JSExportClassDefinition.hpp
-  include/HAL/detail/JSExportClassDefinitionBuilder.hpp
-  include/HAL/detail/JSExportClass.hpp
-  include/HAL/detail/JSExportCallbacks.hpp
-  include/HAL/detail/JSExportNamedFunctionPropertyCallback.hpp
-  include/HAL/detail/JSExportNamedValuePropertyCallback.hpp
-  include/HAL/detail/JSValueUtil.hpp
-  src/detail/JSValueUtil.cpp
-)
-  
 set(SOURCE_JSClass
-  include/HAL/JSClassDefinition.hpp
-  src/JSClassDefinition.cpp
-  include/HAL/JSClassAttribute.hpp
   include/HAL/JSClass.hpp
-  src/JSClass.cpp
 )
   
-set(SOURCE_JSClass_detail
-  include/HAL/detail/JSPropertyCallback.hpp
-  src/detail/JSPropertyCallback.cpp
-  include/HAL/detail/JSStaticValue.hpp
-  src/detail/JSStaticValue.cpp
-  include/HAL/detail/JSStaticFunction.hpp
-  src/detail/JSStaticFunction.cpp
-)
-
 set(SOURCE_JSContext
   include/HAL/JSContextGroup.hpp
   src/JSContextGroup.cpp
@@ -108,67 +80,35 @@ set(SOURCE_JSContext
 set(SOURCE_JSValue
   include/HAL/JSValue.hpp
   src/JSValue.cpp
-  include/HAL/JSUndefined.hpp
-  include/HAL/JSNull.hpp
-  include/HAL/JSBoolean.hpp
-  include/HAL/JSNumber.hpp
 )
 
 set(SOURCE_JSObject
-  include/HAL/JSPropertyAttribute.hpp
-  include/HAL/JSPropertyNameArray.hpp
-  src/JSPropertyNameArray.cpp
   include/HAL/JSObject.hpp
   src/JSObject.cpp
   include/HAL/JSArray.hpp
   src/JSArray.cpp
-  include/HAL/JSDate.hpp
-  src/JSDate.cpp
   include/HAL/JSError.hpp
   src/JSError.cpp 
-  include/HAL/JSRegExp.hpp
-  src/JSRegExp.cpp
   include/HAL/JSFunction.hpp
   src/JSFunction.cpp
 )
   
-set(SOURCE_JSObject_detail
-  include/HAL/detail/JSPropertyNameAccumulator.hpp
-)
-
-set(SOURCE_JSLogger_detail
-  include/HAL/detail/JSLogger.hpp
-  include/HAL/detail/JSLoggerPolicyInterface.hpp
-  include/HAL/detail/JSLoggerPolicyConsole.hpp
-  include/HAL/detail/JSLoggerPolicyFile.hpp
-  include/HAL/detail/JSLoggerPimpl.hpp
-  src/detail/JSLoggerPimpl.cpp
-)
-
 source_group(HAL                   FILES ${SOURCE_HAL})
 source_group(HAL\\detail           FILES ${SOURCE_HAL_detail})
 source_group(HAL\\JSExport         FILES ${SOURCE_JSExport})
-source_group(HAL\\JSExport\\detail FILES ${SOURCE_JSExport_detail})
 source_group(HAL\\JSClass          FILES ${SOURCE_JSClass})
-source_group(HAL\\JSClass\\detail  FILES ${SOURCE_JSClass_detail})
 source_group(HAL\\JSContext        FILES ${SOURCE_JSContext})
 source_group(HAL\\JSValue          FILES ${SOURCE_JSValue})
 source_group(HAL\\JSObject         FILES ${SOURCE_JSObject})
-source_group(HAL\\JSObject\\detail FILES ${SOURCE_JSObject_detail})
-source_group(HAL\\JSLogger\\detail FILES ${SOURCE_JSLogger_detail})
 
 set(SOURCE_ALL
   ${SOURCE_HAL}
   ${SOURCE_HAL_detail}
   ${SOURCE_JSExport}
-  ${SOURCE_JSExport_detail}
   ${SOURCE_JSClass}
-  ${SOURCE_JSClass_detail}
   ${SOURCE_JSContext}
   ${SOURCE_JSValue}
   ${SOURCE_JSObject}
-  ${SOURCE_JSObject_detail}
-  ${SOURCE_JSLogger_detail}
 )
 
 # Turn on precompiled headers

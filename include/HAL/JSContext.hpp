@@ -1,7 +1,7 @@
 /**
  * HAL
  *
- * Copyright (c) 2014 by Appcelerator, Inc. All Rights Reserved.
+ * Copyright (c) 2018 by Axway. All Rights Reserved.
  * Licensed under the terms of the Apache Public License.
  * Please see the LICENSE included with this distribution for details.
  */
@@ -14,39 +14,26 @@
 
 #include <vector>
 #include <unordered_map>
+#include <functional>
 
 namespace HAL {
   
   class JSClass;
   class JSString;
   class JSValue;
-  class JSUndefined;
-  class JSNull;
-  class JSBoolean;
-  class JSNumber;
   class JSObject;
   class JSArray;
-  class JSDate;
   class JSError;
-  class JSRegExp;
-  class JSFunction;
   class JSExportObject;
   
-  namespace detail {
-    template<typename T>
-    class JSExportClass;
-    
-    HAL_EXPORT std::vector<JSValue> to_vector(const JSContext&, size_t, const JSValueRef[]);
-  }}
+}
 
 namespace HAL {
-
-  typedef std::function<JSValue(const std::vector<JSValue>, JSObject&)> JSFunctionCallback;
   
   /*!
    @class
    
-   @discussion A JSContext is an RAII wrapper around a JSContextRef,
+   @discussion A JSContext is an RAII wrapper around a JsContextRef,
    the JavaScriptCore C API representation of a JavaScript execution
    context that holds the global object and other execution state.
    
@@ -60,7 +47,7 @@ namespace HAL {
    When JavaScript objects within the same context group are used in
    multiple threads, explicit synchronization is required.
    */
-  class HAL_EXPORT JSContext final HAL_PERFORMANCE_COUNTER1(JSContext) {
+  class HAL_EXPORT JSContext final {
     
   public:
     
@@ -73,19 +60,7 @@ namespace HAL {
      @result The global object of this JavaScript execution context.
      */
     JSObject get_global_object() const HAL_NOEXCEPT;
-    
-    /*!
-     @method
-     
-     @abstract Return the context group of this JavaScript execution
-     context.
-     
-     @result The context group of this JavaScript execution context.
-     */
-    JSContextGroup get_context_group() const HAL_NOEXCEPT {
-      return js_context_group__;
-    }
-    
+        
     /*!
      @method
      
@@ -125,7 +100,7 @@ namespace HAL {
      
      @result The unique undefined value.
      */
-    JSUndefined CreateUndefined() const HAL_NOEXCEPT;
+    JSValue CreateUndefined() const HAL_NOEXCEPT;
     
     /*!
      @method
@@ -134,16 +109,7 @@ namespace HAL {
      
      @result The unique null value.
      */
-    JSNull CreateNull() const HAL_NOEXCEPT;
-		
-    /*!
-     @method
- 
-     @abstract Create a native nullptr. For interoperability with the JavaScriptCore C API.
- 
-     @result The value which represents native nullptr.
-     */
-    JSValue CreateNativeNull() const HAL_NOEXCEPT;
+	JSValue CreateNull() const HAL_NOEXCEPT;
 		
     /*!
      @method
@@ -155,7 +121,7 @@ namespace HAL {
      @result A JavaScript value of the boolean type, representing the
      value of boolean.
      */
-    JSBoolean CreateBoolean(bool boolean) const HAL_NOEXCEPT;
+	JSValue CreateBoolean(bool boolean) const HAL_NOEXCEPT;
     
     /*!
      @method
@@ -168,7 +134,7 @@ namespace HAL {
      @result A JavaScript value of the number type, representing the
      value of number.
      */
-    JSNumber CreateNumber(double number) const HAL_NOEXCEPT;
+	JSValue CreateNumber(double number) const HAL_NOEXCEPT;
     
     /*!
      @method
@@ -181,7 +147,7 @@ namespace HAL {
      @result A JavaScript value of the number type, representing the
      value of number.
      */
-    JSNumber CreateNumber(int32_t number) const HAL_NOEXCEPT;
+	JSValue CreateNumber(int32_t number) const HAL_NOEXCEPT;
     
     /*!
      @method
@@ -194,7 +160,7 @@ namespace HAL {
      @result A JavaScript value of the number type, representing the
      value of number.
      */
-    JSNumber CreateNumber(uint32_t number) const HAL_NOEXCEPT;
+	JSValue CreateNumber(uint32_t number) const HAL_NOEXCEPT;
     
     /*!
      @method
@@ -245,8 +211,8 @@ namespace HAL {
      
      @result A JSObject that is a Date.
      */
-    JSDate CreateDate() const HAL_NOEXCEPT;
-    JSDate CreateDate(const std::vector<JSValue>& arguments) const;
+    JSObject CreateDate() const HAL_NOEXCEPT;
+    JSObject CreateDate(const std::vector<JSValue>& arguments) const;
     
     /*!
      @method
@@ -260,90 +226,8 @@ namespace HAL {
      @result A JSObject that is a Error.
      */
     JSError CreateError() const HAL_NOEXCEPT;
-    JSError CreateError(const std::vector<JSValue>& arguments) const;
-    
-    /*!
-     @method
-     
-     @abstract Create a JavaScript RegExp object, as if by invoking
-     the built-in RegExp constructor.
-     
-     @param arguments Optional JavaScript values to pass to the RegExp
-     Constructor.
-     
-     @result A JSObject that is a RegExp.
-     */
-    JSRegExp CreateRegExp() const HAL_NOEXCEPT;
-    JSRegExp CreateRegExp(const std::vector<JSValue>& arguments) const;
-    
-    /*!
-     @method
-     
-     @abstract Create a JavaScript function whose body is given as a
-     string of JavaScript code. Use this method when you want to
-     execute a script repeatedly to avoid the cost of re-parsing the
-     script before each execution.
-     
-     @param body A JSString containing the script to use as the
-     function's body.
-     
-     @param parameter_names An optional JSString array containing the
-     names of the function's parameters.
-     
-     @param function_name An optional JSString containing the
-     function's name. This will be used when converting the function
-     to a string. An empty string creates an anonymous function.
-     
-     @param source_url An optional JSString containing a URL for the
-     script's source file. This is only used when reporting
-     exceptions.
-     
-     @param starting_line_number An optional integer value specifying
-     the script's starting line number in the file located at
-     source_url. This is only used when reporting exceptions. The
-     value is one-based, so the first line is line 1 and invalid
-     values are clamped to 1.
-     
-     @result A JSObject that is a function. The object's prototype
-     will be the default function prototype.
-     
-     @throws std::invalid_argument if either body, function_name or
-     parameter_names contains a syntax error.
-     */
-    JSFunction CreateFunction(const JSString& body) const;
-    JSFunction CreateFunction(const JSString& body, const std::vector<JSString>& parameter_names) const;
-    JSFunction CreateFunction(const JSString& body, const std::vector<JSString>& parameter_names, const JSString& function_name) const;
-    JSFunction CreateFunction(const JSString& body, const std::vector<JSString>& parameter_names, const JSString& function_name, const JSString& source_url, int starting_line_number = 1) const;
+	JSError CreateError(const std::string& message) const HAL_NOEXCEPT;
 
-    /*!
-     @method
-     
-     @abstract Create a JavaScript function with a given callback
-     as its implementation by C++11 lambda/std::function.
-
-     @param callback A C++11 function to invoke when the function is called
-     k
-     @param function_name An optional JSString containing the
-     function's name. This will be used when converting the function
-     to a string. An empty string creates an anonymous function.
-
-     @result A JSObject that is a function. The object's prototype
-     will be the default function prototype.
-     */
-    JSFunction CreateFunction(JSFunctionCallback& callback) const;
-    JSFunction CreateFunction(const JSString& function_name, JSFunctionCallback& callback) const;
-
-    /*!
-     @method
-     
-     @abstract Create a JavaScript function which does basically nothing.
-     This is useful when you need a JSFunction as class member which does nothing by default.
-
-     @result A JSObject that is a function. The object's prototype
-     will be the default function prototype.
-     */
-    JSFunction CreateFunction() const;
-    
     /* Script Evaluation */
     
     /*!
@@ -372,10 +256,8 @@ namespace HAL {
      threw an exception.
      
      */
-    JSValue JSEvaluateScript(const JSString& script                                                                                ) const;
-    JSValue JSEvaluateScript(const JSString& script, JSObject this_object                                                          ) const;
-    JSValue JSEvaluateScript(const JSString& script,                       const JSString& source_url, int starting_line_number = 1) const;
-    JSValue JSEvaluateScript(const JSString& script, JSObject this_object, const JSString& source_url, int starting_line_number = 1) const;
+    JSValue JSEvaluateScript(const std::string& script, const std::string& source_url = "") const;
+    JSValue JSEvaluateScript(const std::string& script, JSObject this_object, const std::string& source_url = "") const;
     
     /*!
      @method
@@ -384,22 +266,11 @@ namespace HAL {
      
      @param script A JSString containing the script to check for
      syntax errors.
-     
-     @param source_url An optional JSString containing a URL for the
-     script's source file. This is used by debuggers and when
-     reporting exceptions.
-     
-     @param starting_line_number An optional integer value specifying
-     the script's starting line number in the file located at
-     source_url. This is only used when reporting exceptions. The
-     value is one-based, so the first line is line 1 and invalid
-     values are clamped to 1.
-     
+
      @result true if the script is syntactically correct, otherwise
      false.
      */
-    bool JSCheckScriptSyntax(const JSString& script) const HAL_NOEXCEPT;
-    bool JSCheckScriptSyntax(const JSString& script, const JSString& source_url, int starting_line_number = 1) const HAL_NOEXCEPT;
+    bool JSCheckScriptSyntax(const std::string& script, const std::string& source_url = "") const HAL_NOEXCEPT;
     
     
     /*!
@@ -419,23 +290,7 @@ namespace HAL {
      group is released.
      */
     void GarbageCollect() const HAL_NOEXCEPT;
-    
-    /*!
-     @method
-     
-     @abstract FOR DEBUG PURPOSES ONLY: Perform an immediate
-     JavaScript garbage collection.
-     
-     @discussion JavaScript values that are on the machine stack, in a
-     register, protected by JSValueProtect, set as the global object
-     of an execution context, or reachable from any such value will
-     not be collected.
-     */
-#ifdef DEBUG
-    void SynchronousGarbageCollectForDebugging() const;
-    void SynchronousEdenCollectForDebugging() const;
-#endif
-    
+        
     JSContext() = delete;
     ~JSContext()                    HAL_NOEXCEPT;
     JSContext(const JSContext&)     HAL_NOEXCEPT;
@@ -444,14 +299,11 @@ namespace HAL {
     void swap(JSContext&)           HAL_NOEXCEPT;
 
     // For interoperability with the JavaScriptCore C API.
-    explicit operator JSContextRef() const HAL_NOEXCEPT {
-      return js_global_context_ref__;
+    explicit operator JsContextRef() const HAL_NOEXCEPT {
+      return js_context_ref__;
     }
     
-    explicit JSContext(JSContextRef js_context_ref) HAL_NOEXCEPT;
-    
-    // For interoperability with the JavaScriptCore C API.
-    explicit JSContext(JSGlobalContextRef js_global_context_ref__) HAL_NOEXCEPT;
+    explicit JSContext(JsContextRef js_context_ref) HAL_NOEXCEPT;
     
   private:
     
@@ -459,10 +311,7 @@ namespace HAL {
     // constructor.
     friend class JSContextGroup;
     
-    JSContext(const JSContextGroup& js_context_group, const JSClass& global_object_class) HAL_NOEXCEPT;
-    
     HAL_EXPORT friend bool operator==(const JSValue& lhs, const JSValue& rhs) HAL_NOEXCEPT;
-    HAL_EXPORT friend std::vector<JSValue> detail::to_vector(const JSContext&, size_t, const JSValueRef[]);
    
     // Prevent heap based objects.
     static void * operator new(std::size_t);       // #1: To prevent allocation of scalar objects
@@ -474,17 +323,8 @@ namespace HAL {
     // need to be exported from a DLL.
 #pragma warning(push)
 #pragma warning(disable: 4251)
-    JSContextGroup     js_context_group__;
-    JSGlobalContextRef js_global_context_ref__ { nullptr };
-#pragma warning(pop)
-    
-#undef  HAL_JSCONTEXT_LOCK_GUARD
-#ifdef  HAL_THREAD_SAFE
-    std::recursive_mutex mutex__;
-#define HAL_JSCONTEXT_LOCK_GUARD std::lock_guard<std::recursive_mutex> lock(mutex__)
-#else
-#define HAL_JSCONTEXT_LOCK_GUARD
-#endif  // HAL_THREAD_SAFE
+	JsContextRef js_context_ref__ { nullptr };
+#pragma warning(pop)    
   };
   
   inline
@@ -495,10 +335,10 @@ namespace HAL {
   // Return true if the two JSContexts are equal.
   inline
   bool operator==(const JSContext& lhs, const JSContext& rhs) {
-    return (lhs.js_global_context_ref__ == rhs.js_global_context_ref__);
+    return (lhs.js_context_ref__ == rhs.js_context_ref__);
   }
   
-  // Return true if the two JSContextGroups are not equal.
+  // Return true if the two JSContexts are not equal.
   inline
   bool operator!=(const JSContext& lhs, const JSContext& rhs) {
     return ! (lhs == rhs);

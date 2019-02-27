@@ -1,7 +1,7 @@
 /**
  * HAL
  *
- * Copyright (c) 2014 by Appcelerator, Inc. All Rights Reserved.
+ * Copyright (c) 2018 by Axway. All Rights Reserved.
  * Licensed under the terms of the Apache Public License.
  * Please see the LICENSE included with this distribution for details.
  */
@@ -17,7 +17,7 @@ namespace HAL {
   
   class JSContext;
   class JSClass;
-  
+
   /*!
    @class
    
@@ -39,7 +39,7 @@ namespace HAL {
    global objects. See the individual JSContextGroup constructors for
    more details.
    */
-  class HAL_EXPORT JSContextGroup final HAL_PERFORMANCE_COUNTER1(JSContextGroup) {
+  class HAL_EXPORT JSContextGroup final {
     
   public:
     
@@ -70,24 +70,21 @@ namespace HAL {
      JSClass will create the global object populated with all of the
      standard built-in JavaScript objects, such as Object, Function,
      String, and Array
-     
-     @param global_object_class An optional JSClass used to create the
-     global object.
      */
     JSContext CreateContext() const HAL_NOEXCEPT;
-    JSContext CreateContext(const JSClass& global_object_class) const HAL_NOEXCEPT;
-    
+	JSContext CreateContext(const JSClass& js_class) const HAL_NOEXCEPT;
+
     ~JSContextGroup()                         HAL_NOEXCEPT;
     JSContextGroup(const JSContextGroup&)     HAL_NOEXCEPT;
     JSContextGroup(JSContextGroup&&)          HAL_NOEXCEPT;
     JSContextGroup& operator=(JSContextGroup) HAL_NOEXCEPT;
     void swap(JSContextGroup&)                HAL_NOEXCEPT;
 
-    // For interoperability with the JavaScriptCore C API.
-    explicit JSContextGroup(JSContextGroupRef js_context_group_ref) HAL_NOEXCEPT;
+    // For interoperability with the JSRT API.
+    explicit JSContextGroup(JsRuntimeHandle js_runtime_handle) HAL_NOEXCEPT;
     
-    explicit operator JSContextGroupRef() const HAL_NOEXCEPT {
-      return js_context_group_ref__;
+    explicit operator JsRuntimeHandle() const HAL_NOEXCEPT {
+      return js_runtime_handle__;
     }
      
   private:
@@ -102,17 +99,8 @@ namespace HAL {
     // need to be exported from a DLL.
 #pragma warning(push)
 #pragma warning(disable: 4251)
-    bool managed__ { false };
-    JSContextGroupRef js_context_group_ref__;
+    JsRuntimeHandle js_runtime_handle__;
 #pragma warning(pop)
-    
-#undef HAL_JSCONTEXTGROUP_LOCK_GUARD
-#ifdef HAL_THREAD_SAFE
-    std::recursive_mutex mutex__;
-#define HAL_JSCONTEXTGROUP_LOCK_GUARD std::lock_guard<std::recursive_mutex> lock(mutex__)
-#else
-#define HAL_JSCONTEXTGROUP_LOCK_GUARD
-#endif  // HAL_THREAD_SAFE
   };
   
   inline
@@ -123,7 +111,7 @@ namespace HAL {
   // Return true if the two JSContextGroups are equal.
   inline
   bool operator==(const JSContextGroup& lhs, const JSContextGroup& rhs) {
-    return lhs.js_context_group_ref__ == rhs.js_context_group_ref__;
+    return lhs.js_runtime_handle__ == rhs.js_runtime_handle__;
   }
   
   // Return true if the two JSContextGroups are not equal.
