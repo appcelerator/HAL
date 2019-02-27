@@ -1,7 +1,7 @@
 /**
  * HAL
  *
- * Copyright (c) 2018 by Axway. All Rights Reserved.
+ * Copyright (c) 2019 by Axway. All Rights Reserved.
  * Licensed under the terms of the Apache Public License.
  * Please see the LICENSE included with this distribution for details.
  */
@@ -109,8 +109,8 @@ private:
 	friend JSContext;
 	friend JSObject;
 	
-	JSArray(JsValueRef js_object_ref);
-	JSArray(JsValueRef js_object_ref, const std::vector<JSValue>& arguments);
+	JSArray(JSValueRef js_object_ref);
+	JSArray(JSValueRef js_object_ref, const std::vector<JSValue>& arguments);
 };
 
 template<typename T>

@@ -1,7 +1,7 @@
 /**
  * HAL
  *
- * Copyright (c) 2018 by Axway. All Rights Reserved.
+ * Copyright (c) 2019 by Axway. All Rights Reserved.
  * Licensed under the terms of the Apache Public License.
  * Please see the LICENSE included with this distribution for details.
  */
@@ -259,7 +259,7 @@ namespace HAL {
 		 @result The the execution context of this JavaScript value.
 		 */
 		virtual JSContext get_context() const HAL_NOEXCEPT final {
-			return JSContext(detail::GetContextRef());
+			return js_context__;
 		}
 
 		/*!
@@ -308,27 +308,12 @@ namespace HAL {
 		void swap(JSObject&)           HAL_NOEXCEPT;
 
 		// For interoperability with the JavaScriptCore C API.
-		JSObject(JsValueRef js_object_ref);
+		JSObject(JSValueRef js_object_ref);
 
 		// For interoperability with the JavaScriptCore C API.
-		explicit operator JsValueRef() const HAL_NOEXCEPT {
+		explicit operator JSValueRef() const HAL_NOEXCEPT {
 			return js_object_ref__;
 		}
-
-		static JsValueRef GetUndefinedRef() {
-			JsValueRef undefinedValue;
-			JsGetUndefinedValue(&undefinedValue);
-			return undefinedValue;
-		}
-
-		static JSObject GetObject(const JSExportObject* jsexport_ptr);
-		static void RegisterJSExportObject(const JSExportObject* jsexport_ptr, const JsValueRef);
-		static void UnregisterJSExportObject(const JSExportObject* jsexport_ptr);
-
-		static JSExportConstructObjectCallback GetObjectInitializerCallback(const JsValueRef js_ctor_ref);
-		static void RemoveObjectConstructorCallback(const JsValueRef js_ctor_ref);
-
-		static JsPropertyIdRef GetJsPropertyIdRef(const std::string& name) HAL_NOEXCEPT;
 
 	protected:
 
@@ -392,10 +377,8 @@ namespace HAL {
 		// need to be exported from a DLL.
 #pragma warning(push)
 #pragma warning(disable: 4251)
-		JsValueRef js_object_ref__{ nullptr };
-		static std::unordered_map<std::uintptr_t, const JsValueRef> js_private_data_to_js_object_ref_map__;
-		static std::unordered_map<std::uintptr_t, JSExportConstructObjectCallback> js_ctor_ref_to_constructor_map__;
-		static std::unordered_map<std::string, const JsPropertyIdRef> name_to_property_id_map__;
+		JSValueRef js_object_ref__{ nullptr };
+		JSContext js_context__{ nullptr };
 #pragma warning(pop)
 
 	};
@@ -410,15 +393,6 @@ namespace HAL {
 		const auto private_ptr = GetPrivate();
 		if (private_ptr) {
 			return std::shared_ptr<T>(std::make_shared<JSObject>(*this), dynamic_cast<T*>(static_cast<JSExportObject*>(private_ptr)));
-		}
-
-		// When objects can't have private data (like global object and functions),
-		// it might have __C property that holds private object.
-		if (HasProperty("__C")) {
-			const auto ctor_ptr = static_cast<JSObject>(GetProperty("__C")).GetPrivate<T>();
-			if (ctor_ptr) {
-				return ctor_ptr;
-			}
 		}
 		return nullptr;
 	}

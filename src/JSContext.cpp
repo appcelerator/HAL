@@ -1,7 +1,7 @@
 /**
  * HAL
  *
- * Copyright (c) 2014 by Appcelerator, Inc. All Rights Reserved.
+ * Copyright (c) 2019 by Axway. All Rights Reserved.
  * Licensed under the terms of the Apache Public License.
  * Please see the LICENSE included with this distribution for details.
  */
@@ -17,10 +17,10 @@
 
 namespace HAL {
 
+	JSGlobalContextRef JSContext::js_global_context_ref__;
+
 	JSObject JSContext::get_global_object() const HAL_NOEXCEPT {
-		JsValueRef globalObject;
-		ASSERT_AND_THROW_JS_ERROR(JsGetGlobalObject(&globalObject));
-		return JSObject(globalObject);
+		return JSObject(JSContextGetGlobalObject(static_cast<JSContextRef>(GetGlobalContext())));
 	}
 
 	JSObject JSContext::CreateDate() const HAL_NOEXCEPT {
@@ -218,22 +218,16 @@ namespace HAL {
 	}
 
 	JSContext& JSContext::operator=(JSContext rhs) HAL_NOEXCEPT {
-		swap(rhs);
+		std::swap(js_context_ref__, rhs.js_context_ref__);
 		return *this;
 	}
 
-	void JSContext::swap(JSContext& other) HAL_NOEXCEPT {
-		using std::swap;
-
-		// By swapping the members of two classes, the two classes are
-		// effectively swapped.
-		swap(js_context_ref__, other.js_context_ref__);
-	}
-
 	// For interoperability with the JavaScriptCore C API.
-	JSContext::JSContext(JsContextRef js_context_ref) HAL_NOEXCEPT
+	JSContext::JSContext(JSContextRef js_context_ref) HAL_NOEXCEPT
 		: js_context_ref__(js_context_ref) {
-
+		if (js_global_context_ref__ == nullptr) {
+			js_global_context_ref__ = JSContextGetGlobalContext(js_context_ref__);
+		}
 	}
 
 } // namespace HAL {

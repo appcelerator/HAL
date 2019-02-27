@@ -1,7 +1,7 @@
 /**
  * HAL
  *
- * Copyright (c) 2018 by Axway. All Rights Reserved.
+ * Copyright (c) 2019 by Axway. All Rights Reserved.
  * Licensed under the terms of the Apache Public License.
  * Please see the LICENSE included with this distribution for details.
  */
@@ -97,7 +97,6 @@ namespace HAL {
 		 std::string.
 		 */
 		explicit operator std::string() const HAL_NOEXCEPT;
-		explicit operator LPCWSTR()     const HAL_NOEXCEPT;
 
 		~JSString()                   HAL_NOEXCEPT;
 		JSString(const JSString&)     HAL_NOEXCEPT;
@@ -106,10 +105,10 @@ namespace HAL {
 		void swap(JSString&)          HAL_NOEXCEPT;
 
 		// For interoperability with the JSRT API.
-		explicit JSString(JsValueRef js_string_ref) HAL_NOEXCEPT;
+		explicit JSString(JSStringRef js_string_ref) HAL_NOEXCEPT;
 
 		// For interoperability with the JSRT API.
-		explicit operator JsValueRef() const {
+		explicit operator JSStringRef() const {
 			return js_string_ref__;
 		}
 
@@ -136,7 +135,7 @@ namespace HAL {
 		// need to be exported from a DLL.
 #pragma warning(push)
 #pragma warning(disable: 4251)
-		JsValueRef    js_string_ref__{ nullptr };
+		JSStringRef    js_string_ref__{ nullptr };
 #pragma warning(pop)
 
 	};

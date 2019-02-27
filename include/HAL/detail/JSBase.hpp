@@ -1,7 +1,7 @@
 /**
  * HAL
  *
- * Copyright (c) 2018 by Axway. All Rights Reserved.
+ * Copyright (c) 2019 by Axway. All Rights Reserved.
  * Licensed under the terms of the Apache Public License.
  * Please see the LICENSE included with this distribution for details.
  */
@@ -43,14 +43,9 @@
 #define HAL_NOEXCEPT
 #endif
 
+#define HAL_USE_SINGLE_CONTEXT
+
 #include "HAL_EXPORT.h"
-
-#define USE_EDGEMODE_JSRT
-#define NOMINMAX
-#define NOGDI
-
-#include <jsrt.h>
-
-#define ASSERT_AND_THROW_JS_ERROR(x) HAL::detail::CheckAndThrowChakraRuntimeError(x);
+#include <JavaScriptCore/JavaScript.h>
 
 #endif  // _HAL_DETAIL_JSBASE_HPP_

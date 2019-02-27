@@ -68,6 +68,7 @@ set(SOURCE_JSExport
 
 set(SOURCE_JSClass
   include/HAL/JSClass.hpp
+  src/JSClass.cpp
 )
   
 set(SOURCE_JSContext
