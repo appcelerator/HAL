@@ -22,19 +22,19 @@ namespace HAL {
 		virtual ~JSExportObject() HAL_NOEXCEPT {
 
 		}
+
 		virtual void postInitialize(JSObject& js_object);
 		virtual void postCallAsConstructor(const JSContext&, const std::vector<JSValue>&);
 
-		virtual JSObject get_object() HAL_NOEXCEPT;
-
-		virtual JSContext get_context() {
-			return js_context__;
-		}
+		virtual JSObject  get_object() HAL_NOEXCEPT;
+		virtual JSContext get_context() const;
 
 		static void JSExportInitialize();
 
 	protected:
-		JSContext js_context__;
+		// Avoid holding HAL objects here because it causes circular references.
+		JSContextRef js_context_ref__{ nullptr };
+		JSObjectRef  js_object_ref__{ nullptr };
 	};
 
 } // namespace HAL {

@@ -1,7 +1,7 @@
 /**
  * HAL
  *
- * Copyright (c) 2018 by Axway. All Rights Reserved.
+ * Copyright (c) 2019 by Axway. All Rights Reserved.
  * Licensed under the terms of the Apache Public License.
  * Please see the LICENSE included with this distribution for details.
  */
@@ -14,12 +14,12 @@ namespace HAL {
 
 std::deque<std::string> JSError::NativeStack__; 
 
-JSError::JSError(JsValueRef js_object_ref, const std::vector<JSValue>& arguments)
-		: JSObject(js_object_ref) {
+JSError::JSError(JSContext js_context, JSObjectRef js_object_ref, const std::vector<JSValue>& arguments)
+		: JSObject(js_context, js_object_ref) {
 }
 
-JSError::JSError(JsValueRef js_object_ref)
-		: JSObject(js_object_ref) {
+JSError::JSError(JSContext js_context, JSObjectRef js_object_ref)
+		: JSObject(js_context, js_object_ref) {
 }
 
 std::string JSError::message() const {

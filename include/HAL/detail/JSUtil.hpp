@@ -10,8 +10,14 @@
 #define _HAL_DETAIL_JSUTIL_HPP_
 
 #include "HAL/detail/JSBase.hpp"
+#include "HAL/JSPropertyAttribute.hpp"
+#include <unordered_set>
+#include <vector>
 
 namespace HAL {
+
+	class JSValue;
+
 	namespace detail {
 
 		class js_runtime_error : public std::runtime_error {
@@ -48,7 +54,9 @@ namespace HAL {
 
 		HAL_EXPORT void ThrowRuntimeError(const std::string& message);
 		HAL_EXPORT void ThrowRuntimeError(const std::string& internal_component_name, const std::string& message);
-		HAL_EXPORT std::wstring to_wstring(const std::string& src);
+		HAL_EXPORT std::vector<JSValueRef> to_vector(const std::vector<JSValue>&);
+		HAL_EXPORT std::int32_t to_int32_t(double number);
+		HAL_EXPORT unsigned ToJSPropertyAttributes(const std::unordered_set<JSPropertyAttribute>& attributes) HAL_NOEXCEPT;
 
 	}
 } // namespace HAL { namespace detail {

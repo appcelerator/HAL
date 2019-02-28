@@ -10,7 +10,6 @@
 #define _HAL_JSFUNCTION_HPP_
 
 #include "HAL/JSObject.hpp"
-#include <deque> 
 
 namespace HAL {
 
@@ -30,7 +29,7 @@ namespace HAL {
 		 // Only JSContext and JSObject can create a JSError.
 		 friend JSContext;
 
-		 JSFunction(JSValueRef js_object_ref);
+		 JSFunction(JSContext js_context, JSObjectRef js_object_ref);
 
 	};
 

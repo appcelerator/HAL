@@ -1,7 +1,7 @@
 /**
  * HAL
  *
- * Copyright (c) 2018 by Axway. All Rights Reserved.
+ * Copyright (c) 2019 by Axway. All Rights Reserved.
  * Licensed under the terms of the Apache Public License.
  * Please see the LICENSE included with this distribution for details.
  */
@@ -17,100 +17,135 @@
 
 namespace HAL {
 
-	JsPropertyIdRef JSObject::GetJsPropertyIdRef(const std::string& property_name) HAL_NOEXCEPT {
-		const auto position = name_to_property_id_map__.find(property_name);
-		if (position != name_to_property_id_map__.end()) {
-			return position->second;
-		}
-
-		JsPropertyIdRef propertyId;
-		const auto name = detail::to_wstring(property_name);
-		ASSERT_AND_THROW_JS_ERROR(JsGetPropertyIdFromName(name.data(), &propertyId));
-		name_to_property_id_map__.emplace(property_name, propertyId);
-
-		return propertyId;
-	}
-
 	bool JSObject::HasProperty(const std::string& property_name) const HAL_NOEXCEPT {
-		// JsHasProperty may error out when there's no such property.
-		// In that case we just return false.
-		bool hasProperty;
-		if (JsHasProperty(js_object_ref__, GetJsPropertyIdRef(property_name), &hasProperty) == JsNoError) {
-			return hasProperty;
-		}
-		return false;
+		const auto js_property_name = JSString(property_name);
+		return JSObjectHasProperty(static_cast<JSContextRef>(js_context__), js_object_ref__, static_cast<JSStringRef>(js_property_name));
 	}
 
 	JSValue JSObject::GetProperty(const std::string& property_name) const {
-		JsValueRef value;
-		ASSERT_AND_THROW_JS_ERROR(JsGetProperty(js_object_ref__, GetJsPropertyIdRef(property_name), &value));
-		return value;
+		const auto js_property_name = JSString(property_name);
+		return GetProperty(js_property_name);
+	}
+
+	JSValue JSObject::GetProperty(const JSString property_name) const {
+
+		JSValueRef exception{ nullptr };
+		const auto js_context_ref = static_cast<JSContextRef>(js_context__);
+		const auto js_value_ref = JSObjectGetProperty(js_context_ref, js_object_ref__, static_cast<JSStringRef>(property_name), &exception);
+		if (exception) {
+			if (js_value_ref) {
+				JSValueUnprotect(js_context_ref, js_value_ref);
+			}
+			detail::ThrowRuntimeError("Unable to get property ", static_cast<std::string>(property_name));
+		}
+
+		assert(js_value_ref);
+		return JSValue(js_context__, js_value_ref);
 	}
 
 	JSValue JSObject::GetProperty(unsigned property_index) const {
-		JsValueRef js_value;
-		JsValueRef numberValue;
-		ASSERT_AND_THROW_JS_ERROR(JsIntToNumber(property_index, &numberValue));
-		ASSERT_AND_THROW_JS_ERROR(JsGetIndexedProperty(js_object_ref__, numberValue, &js_value));
-		return js_value;
+		JSValueRef exception{ nullptr };
+		const auto js_context_ref = static_cast<JSContextRef>(js_context__);
+		const auto js_value_ref = JSObjectGetPropertyAtIndex(js_context_ref, js_object_ref__, property_index, &exception);
+		if (exception) {
+			if (js_value_ref) {
+				JSValueUnprotect(js_context_ref, js_value_ref);
+			}
+			detail::ThrowRuntimeError("Unable to get property at index ", std::to_string(property_index));
+		}
+
+		assert(js_value_ref);
+		return JSValue(js_context__, js_value_ref);
 	}
 
-	void JSObject::SetProperty(const std::string& property_name, const JSValue& property_value) {
-		ASSERT_AND_THROW_JS_ERROR(JsSetProperty(js_object_ref__, GetJsPropertyIdRef(property_name), static_cast<JsValueRef>(property_value), false));
+	void JSObject::SetProperty(const std::string& property_name, const JSValue& property_value, const std::unordered_set<JSPropertyAttribute>& attributes) {
+		JSValueRef exception{ nullptr };
+		const auto js_property_name = JSString(property_name);
+		JSObjectSetProperty(static_cast<JSContextRef>(js_context__), js_object_ref__, 
+			static_cast<JSStringRef>(js_property_name), 
+			static_cast<JSValueRef>(property_value), 
+			detail::ToJSPropertyAttributes(attributes), &exception);
+		if (exception) {
+			detail::ThrowRuntimeError("Unable to set property ", property_name);
+		}
 	}
 
 	void JSObject::SetProperty(unsigned property_index, const JSValue& property_value) {
-		JsValueRef numberValue;
-		ASSERT_AND_THROW_JS_ERROR(JsIntToNumber(property_index, &numberValue));
-		ASSERT_AND_THROW_JS_ERROR(JsSetIndexedProperty(js_object_ref__, numberValue, static_cast<JsValueRef>(property_value)));
+		JSValueRef exception{ nullptr };
+		JSObjectSetPropertyAtIndex(static_cast<JSContextRef>(js_context__), js_object_ref__, property_index, static_cast<JSValueRef>(property_value), &exception);
+		if (exception) {
+			detail::ThrowRuntimeError("Unable to set property at index ", std::to_string(property_index));
+		}
 	}
 
 	bool JSObject::DeleteProperty(const std::string& property_name) {
-		JsValueRef result;
-		ASSERT_AND_THROW_JS_ERROR(JsDeleteProperty(js_object_ref__, GetJsPropertyIdRef(property_name), true, &result));
-		return static_cast<bool>(JSValue(result));
+		JSValueRef exception{ nullptr };
+		const auto js_property_name = JSString(property_name);
+		const bool result = JSObjectDeleteProperty(static_cast<JSContextRef>(js_context__), js_object_ref__, static_cast<JSStringRef>(js_property_name), &exception);
+		if (exception) {
+			detail::ThrowRuntimeError("Unable to delete property ", property_name);
+		}
+
+		return result;
 	}
 
-	JSArray JSObject::GetPropertyNames() const HAL_NOEXCEPT {
-		JsValueRef names;
-		ASSERT_AND_THROW_JS_ERROR(JsGetOwnPropertyNames(js_object_ref__, &names));
-		return JSArray(names);
+	JSPropertyNameArray JSObject::GetPropertyNames() const HAL_NOEXCEPT {
+		return JSPropertyNameArray(*this);
 	}
 
 	std::unordered_map<std::string, JSValue> JSObject::GetProperties() const HAL_NOEXCEPT {
 		std::unordered_map<std::string, JSValue> properties;
-		for (const auto& property_name : static_cast<std::vector<std::string>>(GetPropertyNames())) {
-			// Don't copy special properties
-			if (property_name == "caller" || property_name == "arguments" || property_name == "constructor") {
-				continue;
-			}
+		const auto names = GetPropertyNames();
+		for (std::size_t i = 0; i < names.GetCount(); i++) {
+			const auto property_name = names.GetNameAtIndex(i);
 			properties.emplace(property_name, GetProperty(property_name));
 		}
 		return properties;
 	}
 
 	bool JSObject::IsFunction() const HAL_NOEXCEPT {
-		JsValueType valueType;
-		ASSERT_AND_THROW_JS_ERROR(JsGetValueType(js_object_ref__, &valueType));
-		return (valueType == JsValueType::JsFunction);
+		return JSObjectIsFunction(static_cast<JSContextRef>(js_context__), js_object_ref__);
 	}
 
 	bool JSObject::IsArray() const HAL_NOEXCEPT {
-		JsValueType valueType;
-		ASSERT_AND_THROW_JS_ERROR(JsGetValueType(js_object_ref__, &valueType));
-		return (valueType == JsValueType::JsArray);
+		JSObject global_object = js_context__.get_global_object();
+		JSValue array_value = global_object.GetProperty("Array");
+		if (!array_value.IsObject()) {
+			return false;
+		}
+
+		JSObject array = static_cast<JSObject>(array_value);
+		JSValue isArray_value = array.GetProperty("isArray");
+		if (!isArray_value.IsObject()) {
+			return false;
+		}
+		JSObject isArray = static_cast<JSObject>(isArray_value);
+		if (!isArray.IsFunction()) {
+			return false;
+		}
+
+		JSValue self = static_cast<JSValue>(*this);
+		JSValue result = isArray(self, global_object);
+		if (result.IsBoolean()) {
+			return static_cast<bool>(result);
+		}
+
+		return false;
 	}
 
 	bool JSObject::IsError() const HAL_NOEXCEPT {
-		JsValueType valueType;
-		ASSERT_AND_THROW_JS_ERROR(JsGetValueType(js_object_ref__, &valueType));
-		return (valueType == JsValueType::JsError);
+		const auto global_object = js_context__.get_global_object();
+		const auto error_value = global_object.GetProperty("Error");
+		if (!error_value.IsObject()) {
+			return false;
+		}
+		const auto error = static_cast<JSObject>(error_value);
+		const auto self = static_cast<JSValue>(*this);
+		return static_cast<std::string>(self) == "[object Error]" || self.IsInstanceOfConstructor(error);
 	}
 
 	bool JSObject::IsConstructor() const HAL_NOEXCEPT {
-		JsValueType valueType;
-		ASSERT_AND_THROW_JS_ERROR(JsGetValueType(js_object_ref__, &valueType));
-		return (valueType == JsValueType::JsFunction);
+		return JSObjectIsConstructor(static_cast<JSContextRef>(js_context__), js_object_ref__);
 	}
 
 	JSValue JSObject::operator()(JSObject this_object) { return CallAsFunction(std::vector<JSValue>(), this_object); }
@@ -121,48 +156,56 @@ namespace HAL {
 	JSObject JSObject::CallAsConstructor(const JSValue&               argument) { return CallAsConstructor(std::vector<JSValue>  {argument}); }
 	JSObject JSObject::CallAsConstructor(const std::vector<JSValue>&  arguments) {
 
-		const auto jsexport_object_ptr = static_cast<JSExportObject*>(GetPrivate());
-		assert(jsexport_object_ptr != nullptr);
-		const auto ctor_func_ref = jsexport_object_ptr->get_constructor();
-		assert(ctor_func_ref != nullptr);
+		if (!IsConstructor()) {
+			detail::ThrowRuntimeError("JSObject", "This JavaScript object is not a constructor.");
+		}
 
-		JsValueRef result;
-		auto js_args = detail::to_arguments(arguments, js_object_ref__);
-		ASSERT_AND_THROW_JS_ERROR(JsConstructObject(ctor_func_ref, &js_args[0], static_cast<unsigned short>(js_args.size()), &result));
+		const auto js_context_ref = static_cast<JSContextRef>(js_context__);
+		JSValueRef exception{ nullptr };
+		JSObjectRef js_object_ref = nullptr;
+		if (!arguments.empty()) {
+			const auto arguments_array = detail::to_vector(arguments);
+			js_object_ref = JSObjectCallAsConstructor(js_context_ref, js_object_ref__, arguments_array.size(), &arguments_array[0], &exception);
+		} else {
+			js_object_ref = JSObjectCallAsConstructor(js_context_ref, js_object_ref__, 0, nullptr, &exception);
+		}
 
-		return JSObject(result);
+		if (exception) {
+			if (js_object_ref) {
+				JSValueUnprotect(js_context_ref, js_object_ref);
+			}
+			detail::ThrowRuntimeError("Unable to call as constructor");
+		}
+
+		// postcondition
+		assert(js_object_ref);
+		return JSObject(js_context__, js_object_ref);
 	}
 
 	void* JSObject::GetPrivate() const HAL_NOEXCEPT {
-		void* data = nullptr;
-		bool hasData = false;
-		ASSERT_AND_THROW_JS_ERROR(JsHasExternalData(js_object_ref__, &hasData));
-		if (hasData) {
-			ASSERT_AND_THROW_JS_ERROR(JsGetExternalData(js_object_ref__, &data));
-		}
-		return data;
+		return JSObjectGetPrivate(js_object_ref__);
 	}
 
 	bool JSObject::SetPrivate(void* data) const HAL_NOEXCEPT {
-		return (JsSetExternalData(js_object_ref__, data) == JsErrorCode::JsNoError);
+		return JSObjectSetPrivate(js_object_ref__, data);
 	}
 
 	JSObject::~JSObject() HAL_NOEXCEPT {
-		JsRelease(js_object_ref__, nullptr);
+		JSValueUnprotect(static_cast<JSContextRef>(js_context__), js_object_ref__);
 	}
 
 	JSObject::JSObject(const JSObject& rhs) HAL_NOEXCEPT
 		: js_object_ref__(rhs.js_object_ref__) {
-		JsAddRef(js_object_ref__, nullptr);
+		JSValueProtect(static_cast<JSContextRef>(js_context__), js_object_ref__);
 	}
 
 	JSObject::JSObject(JSObject&& rhs) HAL_NOEXCEPT
 		: js_object_ref__(rhs.js_object_ref__) {
-		JsAddRef(js_object_ref__, nullptr);
+		JSValueProtect(static_cast<JSContextRef>(js_context__), js_object_ref__);
 	}
 
 	JSObject& JSObject::operator=(JSObject rhs) {
-		JsAddRef(js_object_ref__, nullptr);
+		JSValueProtect(static_cast<JSContextRef>(js_context__), js_object_ref__);
 		swap(rhs);
 		return *this;
 	}
@@ -175,116 +218,55 @@ namespace HAL {
 		swap(js_object_ref__, other.js_object_ref__);
 	}
 
-	std::unordered_map<std::string, const JsPropertyIdRef> JSObject::name_to_property_id_map__;
-	std::unordered_map<std::uintptr_t, const JsValueRef> JSObject::js_private_data_to_js_object_ref_map__;
-	std::unordered_map<std::uintptr_t, JSExportConstructObjectCallback> JSObject::js_ctor_ref_to_constructor_map__;
-
-	JSObject JSObject::GetObject(const JSExportObject* js_export_ptr) {
-		const auto key = reinterpret_cast<std::uintptr_t>(js_export_ptr);
-		const auto position = js_private_data_to_js_object_ref_map__.find(key);
-		const auto found = position != js_private_data_to_js_object_ref_map__.end();
-		assert(found);
-		if (found) {
-			return JSObject(position->second);
-		}
-		return GetUndefinedRef();
+	JSObject::JSObject(const JSContext& js_context, const JSClass& js_class, void* private_data)
+		: js_context__(js_context)
+		, js_object_ref__(JSObjectMake(static_cast<JSContextRef>(js_context), static_cast<JSClassRef>(js_class), private_data)) {
+		JSValueProtect(static_cast<JSContextRef>(js_context__), js_object_ref__);
 	}
 
-	void JSObject::RegisterJSExportObject(const JSExportObject* js_export_ptr, const JsValueRef js_value_ref) {
-		const auto key = reinterpret_cast<std::uintptr_t>(js_export_ptr);
-		const auto position = js_private_data_to_js_object_ref_map__.find(key);
-		const auto found = position != js_private_data_to_js_object_ref_map__.end();
-		assert(!found);
-		js_private_data_to_js_object_ref_map__.emplace(key, js_value_ref);
-	}
-
-	void JSObject::UnregisterJSExportObject(const JSExportObject* js_export_ptr) {
-		const auto key = reinterpret_cast<std::uintptr_t>(js_export_ptr);
-		const auto position = js_private_data_to_js_object_ref_map__.find(key);
-		const auto found = position != js_private_data_to_js_object_ref_map__.end();
-		assert(found);
-		const auto js_value_ref = position->second;
-		js_private_data_to_js_object_ref_map__.erase(key);
-	}
-
-	JSExportConstructObjectCallback JSObject::GetObjectInitializerCallback(const JsValueRef js_ctor_ref) {
-
-		const auto jsexport_object_ptr = JSObject(js_ctor_ref).GetPrivate();
-		assert(jsexport_object_ptr != nullptr);
-
-		const auto key = reinterpret_cast<std::uintptr_t>(jsexport_object_ptr);
-		const auto position = js_ctor_ref_to_constructor_map__.find(key);
-		const auto found = position != js_ctor_ref_to_constructor_map__.end();
-		assert(found);
-		if (found) {
-			return position->second;
-		}
-		return nullptr;
-	}
-
-	void JSObject::RemoveObjectConstructorCallback(const JsValueRef js_ctor_ref) {
-		const auto jsexport_object_ptr = JSObject(js_ctor_ref).GetPrivate();
-		assert(jsexport_object_ptr != nullptr);
-
-		const auto key = reinterpret_cast<std::uintptr_t>(jsexport_object_ptr);
-		const auto position = js_ctor_ref_to_constructor_map__.find(key);
-		const auto found = position != js_ctor_ref_to_constructor_map__.end();
-		assert(found);
-		if (found) {
-			js_ctor_ref_to_constructor_map__.erase(key);
-		}
-	}
-
-	JSObject::JSObject(const JSClass& js_class) {
-		const auto ctor_init = js_class.GetInitializeConstructorCallback();
-		assert(ctor_init != nullptr);
-		ctor_init(&js_object_ref__);
-
-		const auto jsexport_object_ptr = GetPrivate();
-		assert(jsexport_object_ptr != nullptr);
-
-		const auto key = reinterpret_cast<std::uintptr_t>(jsexport_object_ptr);
-		const auto position = js_ctor_ref_to_constructor_map__.find(key);
-		if (position != js_ctor_ref_to_constructor_map__.end()) {
-			js_ctor_ref_to_constructor_map__.erase(key);
-		}
-		js_ctor_ref_to_constructor_map__.emplace(key, js_class.GetConstructObjectCallback());
-
-		JsAddRef(js_object_ref__, nullptr);
-	}
-
-	// For interoperability with the JSRT API.
-	JSObject::JSObject(JsValueRef js_object_ref)
-		: js_object_ref__(js_object_ref) {
-		if (js_object_ref__ == nullptr) {
-			ASSERT_AND_THROW_JS_ERROR(JsCreateObject(&js_object_ref__));
-		}
-		JsAddRef(js_object_ref__, nullptr);
+	// For interoperability with the JavaScriptCore API.
+	JSObject::JSObject(const JSContext& js_context, JSObjectRef js_object_ref)
+		: js_context__(js_context)
+		, js_object_ref__(js_object_ref) {
+		JSValueProtect(static_cast<JSContextRef>(js_context__), js_object_ref__);
 	}
 
 	JSObject::operator JSValue() const {
-		return JSValue(js_object_ref__);
+		return JSValue(js_context__, js_object_ref__);
 	}
 
 	JSObject::operator JSArray() const {
-		return JSArray(js_object_ref__);
+		return JSArray(js_context__, js_object_ref__);
 	}
 
 	JSObject::operator JSError() const {
-		return JSError(js_object_ref__);
+		return JSError(js_context__, js_object_ref__);
 	}
 
 	JSValue JSObject::CallAsFunction(const std::vector<JSValue>&  arguments, JSObject this_object) {
-		const auto this_object_ref = static_cast<JsValueRef>(this_object);
-		JsValueRef result;
-		if (arguments.empty()) {
-			JsValueRef js_args[] = { this_object_ref };
-			ASSERT_AND_THROW_JS_ERROR(JsCallFunction(js_object_ref__, js_args, 1, &result));
-		} else {
-			auto js_args = detail::to_arguments(arguments, this_object_ref);
-			ASSERT_AND_THROW_JS_ERROR(JsCallFunction(js_object_ref__, &js_args[0], static_cast<unsigned short>(js_args.size()), &result));
+		if (!IsFunction()) {
+			detail::ThrowRuntimeError("This JavaScript object is not a function.");
 		}
-		return result;
+
+		const auto js_context_ref = static_cast<JSContextRef>(js_context__);
+		JSValueRef exception{ nullptr };
+		JSValueRef js_value_ref{ nullptr };
+		if (!arguments.empty()) {
+			const auto arguments_array = detail::to_vector(arguments);
+			js_value_ref = JSObjectCallAsFunction(js_context_ref, js_object_ref__, static_cast<JSObjectRef>(this_object), arguments_array.size(), &arguments_array[0], &exception);
+		} else {
+			js_value_ref = JSObjectCallAsFunction(js_context_ref, js_object_ref__, static_cast<JSObjectRef>(this_object), 0, nullptr, &exception);
+		}
+
+		if (exception) {
+			if (js_value_ref) {
+				JSValueUnprotect(js_context_ref, js_value_ref);
+			}
+			detail::ThrowRuntimeError("Unable to call as function");
+		}
+
+		assert(js_value_ref);
+		return JSValue(js_context__, js_value_ref);
 	}
 
 } // namespace HAL {

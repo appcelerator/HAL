@@ -114,13 +114,6 @@ namespace HAL {
 
 	private:
 
-		// These classes and functions need access to operator
-		// JsValueRef().
-		friend class JSContext;                 // JSEvaluateScript and JSCheckScriptSyntax
-		friend class JSObject;                  // HasProperty
-		friend class JSPropertyNameArray;       // GetNameAtIndex
-		friend class JSPropertyNameAccumulator; // AddName
-
 		// Only the following classes and functions can create a JSString.
 		friend class JSValue;
 

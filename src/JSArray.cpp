@@ -1,7 +1,7 @@
 /**
  * HAL
  *
- * Copyright (c) 2018 by Axway. All Rights Reserved.
+ * Copyright (c) 2019 by Axway. All Rights Reserved.
  * Licensed under the terms of the Apache Public License.
  * Please see the LICENSE included with this distribution for details.
  */
@@ -11,12 +11,12 @@
 
 namespace HAL {
 
-JSArray::JSArray(JsValueRef js_object_ref, const std::vector<JSValue>& arguments)
-		: JSObject(js_object_ref) {
+JSArray::JSArray(JSContext js_context, const std::vector<JSValue>& arguments)
+		: JSObject(js_context, MakeArray(js_context, arguments)) {
 }
 
-JSArray::JSArray(JsValueRef js_object_ref)
-		: JSObject(js_object_ref) {
+JSArray::JSArray(JSContext js_context, JSObjectRef js_object_ref)
+		: JSObject(js_context, js_object_ref) {
 }
 
 uint32_t JSArray::GetLength() const HAL_NOEXCEPT {
@@ -94,5 +94,24 @@ JSArray::operator std::vector<uint32_t>() const {
 	return items;
 }
 
+JSObjectRef JSArray::MakeArray(const JSContext& js_context, const std::vector<JSValue>& arguments) {
+	const auto js_context_ref = static_cast<JSContextRef>(js_context);
+	JSValueRef exception{ nullptr };
+	JSObjectRef js_object_ref{ nullptr };
+	if (!arguments.empty()) {
+		std::vector<JSValueRef> arguments_array = detail::to_vector(arguments);
+		js_object_ref = JSObjectMakeArray(js_context_ref, arguments_array.size(), &arguments_array[0], &exception);
+	} else {
+		js_object_ref = JSObjectMakeArray(js_context_ref, 0, nullptr, &exception);
+	}
 
+	if (exception) {
+		if (js_object_ref) {
+			JSValueUnprotect(js_context_ref, js_object_ref);
+		}
+		detail::ThrowRuntimeError("Unable to create array");
+	}
+
+	return js_object_ref;
+}
 } // namespace HAL {

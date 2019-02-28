@@ -11,12 +11,11 @@
 
 namespace HAL {
 	JSExportObject::JSExportObject(const JSContext& js_context) HAL_NOEXCEPT
-		: js_context__(js_context) {
-		// NOTHING TO DO
+		: js_context_ref__(static_cast<JSContextRef>(js_context)) {
 	}
 
 	void JSExportObject::postInitialize(JSObject& js_object) {
-		// NOTHING TO DO
+		js_object_ref__ = static_cast<JSObjectRef>(js_object);
 	}
 
 	void JSExportObject::postCallAsConstructor(const JSContext&, const std::vector<JSValue>&) {
@@ -27,7 +26,13 @@ namespace HAL {
 		// NOTHING TO DO
 	}
 
+	JSContext JSExportObject::get_context() const {
+		return JSContext(js_context_ref__);
+	}
+
 	JSObject JSExportObject::get_object() HAL_NOEXCEPT {
-		return JSObject::GetObject(this);
+		assert(js_context_ref__ != nullptr);
+		assert(js_object_ref__  != nullptr);
+		return JSObject(get_context(), js_object_ref__);
 	}
 } // namespace HAL {

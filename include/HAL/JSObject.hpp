@@ -12,20 +12,23 @@
 #include "HAL/detail/JSBase.hpp"
 #include "HAL/JSClass.hpp"
 #include "HAL/JSContext.hpp"
+#include "HAL/JSPropertyAttribute.hpp"
+#include "HAL/JSPropertyNameArray.hpp"
 #include "HAL/JSExportObject.hpp"
 
 #include <memory>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace HAL {
 	class JSValue;
 	class JSArray;
 	class JSError;
 	class JSExportObject;
-}
+
+} // namespace HAL {
 
 namespace HAL {
-
 	/*!
 	 @class
 
@@ -71,6 +74,7 @@ namespace HAL {
 		 JavaScript exception.
 		 */
 		virtual JSValue GetProperty(const std::string& property_name) const final;
+		virtual JSValue GetProperty(const JSString property_name) const final;
 
 		/*!
 		 @method
@@ -109,7 +113,7 @@ namespace HAL {
 		 @throws std::runtime_error if setting the property threw a
 		 JavaScript exception.
 		 */
-		virtual void SetProperty(const std::string& property_name, const JSValue& property_value) final;
+		virtual void SetProperty(const std::string& property_name, const JSValue& property_value, const std::unordered_set<JSPropertyAttribute>& attributes = {}) final;
 
 		/*!
 		 @method
@@ -152,7 +156,7 @@ namespace HAL {
 		 @result A JSPropertyNameArray containing the names object's
 		 enumerable properties.
 		 */
-		virtual JSArray GetPropertyNames() const HAL_NOEXCEPT final;
+		virtual JSPropertyNameArray GetPropertyNames() const HAL_NOEXCEPT final;
 
 		/*!
 		 @method
@@ -308,10 +312,10 @@ namespace HAL {
 		void swap(JSObject&)           HAL_NOEXCEPT;
 
 		// For interoperability with the JavaScriptCore C API.
-		JSObject(JSValueRef js_object_ref);
+		JSObject(const JSContext& js_context, JSObjectRef js_object_ref);
 
 		// For interoperability with the JavaScriptCore C API.
-		explicit operator JSValueRef() const HAL_NOEXCEPT {
+		explicit operator JSObjectRef() const HAL_NOEXCEPT {
 			return js_object_ref__;
 		}
 
@@ -371,13 +375,13 @@ namespace HAL {
 		// following constructor.
 		friend class JSContext;
 
-		JSObject(const JSClass& js_class);
+		JSObject(const JSContext& js_context, const JSClass& js_class, void* private_data = nullptr);
 
 		// Silence 4251 on Windows since private member variables do not
 		// need to be exported from a DLL.
 #pragma warning(push)
 #pragma warning(disable: 4251)
-		JSValueRef js_object_ref__{ nullptr };
+		JSObjectRef js_object_ref__{ nullptr };
 		JSContext js_context__{ nullptr };
 #pragma warning(pop)
 

@@ -10,7 +10,6 @@
 #define _HAL_JSARRAY_HPP_
 
 #include "HAL/JSObject.hpp"
-#include "HAL/JSValue.hpp"
 #include <vector>
 
 namespace HAL {
@@ -109,8 +108,11 @@ private:
 	friend JSContext;
 	friend JSObject;
 	
-	JSArray(JSValueRef js_object_ref);
-	JSArray(JSValueRef js_object_ref, const std::vector<JSValue>& arguments);
+	JSArray(JSContext js_context, JSObjectRef js_object_ref);
+	JSArray(JSContext js_context, const std::vector<JSValue>& arguments);
+
+	static JSObjectRef MakeArray(const JSContext& js_context, const std::vector<JSValue>& arguments);
+
 };
 
 template<typename T>

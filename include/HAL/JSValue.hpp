@@ -214,12 +214,26 @@ namespace HAL {
 		/*!
 		 @method
 
+		 @abstract Determine whether this JavaScript value was constructed
+		 by the given constructor, as compared by the JavaScript
+		'instanceof' operator.
+
+		 @param constructor The constructor to test against.
+
+		 @result true if this JavaScript value was constructed by the
+		given constructor as compared by the JavaScript 'instanceof'
+		 operator.
+		 */
+		virtual bool IsInstanceOfConstructor(const JSObject& constructor) const final;
+		/*!
+		 @method
+
 		 @abstract Return the execution context of this JavaScript value.
 
 		 @result The the execution context of this JavaScript value.
 		 */
 		virtual JSContext get_context() const HAL_NOEXCEPT final {
-			return JSContext::GetGlobalContext();
+			return js_context__;
 		}
 
 		virtual ~JSValue()           HAL_NOEXCEPT;
@@ -229,7 +243,7 @@ namespace HAL {
 		void swap(JSValue&)          HAL_NOEXCEPT;
 
 		// For interoperability with the JSRT API.
-		JSValue(JSValueRef js_value_ref) HAL_NOEXCEPT;
+		JSValue(JSContext js_context, JSValueRef js_value_ref) HAL_NOEXCEPT;
 
 		// For interoperability with the JSRT API.
 		explicit operator JSValueRef() const HAL_NOEXCEPT {
@@ -241,7 +255,7 @@ namespace HAL {
 		// A JSContext can create a JSValue.
 		friend class JSContext;
 
-		JSValue(const JSString& js_string, bool parse_as_json = false);
+		JSValue(JSContext js_context, const JSString& js_string, bool parse_as_json = false);
 
 		// These classes and functions need access to operator
 		// JSValueRef().
@@ -258,6 +272,7 @@ namespace HAL {
 #pragma warning(push)
 #pragma warning(disable: 4251)
 		JSValueRef js_value_ref__{ nullptr };
+		JSContext js_context__{ nullptr };
 #pragma warning(pop)
 	};
 

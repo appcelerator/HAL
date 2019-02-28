@@ -11,6 +11,7 @@
 
 #include "HAL/detail/JSBase.hpp"
 #include "HAL/detail/JSUtil.hpp"
+#include "HAL/JSString.hpp"
 #include <functional>
 #include <vector>
 #include <unordered_map>
@@ -22,10 +23,6 @@ namespace HAL {
 	class JSContext;
 	class JSValue;
 	class JSObject;
-
-	typedef std::function<JSValue(JSObject, JSObject, const std::vector<JSValue>&)> JSObjectCallAsFunctionCallback;
-	typedef std::function<JSValue(JSObject)> JSObjectGetPropertyCallback;
-	typedef std::function<bool(JSObject, const JSValue& value)> JSObjectSetPropertyCallback;
 
 	class HAL_EXPORT JSClass {
 	public:
@@ -41,11 +38,13 @@ namespace HAL {
 
 		virtual void Initialize(const JSClassDefinition& other);
 		virtual void InitializePropertyCallbacks() { assert(false); }
-		virtual void AddFunctionProperty(const std::string& name, JSObjectCallAsFunctionCallback callback) { assert(false); }
-		virtual void AddValueProperty(const std::string& name, JSObjectGetPropertyCallback, JSObjectSetPropertyCallback) { assert(false); };
-		virtual void AddConstantProperty(const std::string& name, JSObjectGetPropertyCallback) { assert(false); };
-		virtual void SetParent(const JSClass& js_class) {
+
+		void SetParent(const JSClass& js_class) {
 			js_class_definition__.parentClass = static_cast<JSClassRef>(js_class);
+		}
+
+		void SetClassVersion(const std::uint32_t& class_version) {
+			js_class_definition__.version = class_version;
 		}
 
 		explicit operator JSClassRef() const HAL_NOEXCEPT {
@@ -67,6 +66,24 @@ namespace HAL {
 	};
 
 	template<typename T>
+	using GetNamedValuePropertyCallback = std::function<JSValue(T&)>;
+
+	template<typename T>
+	using SetNamedValuePropertyCallback = std::function<bool(T&, const JSValue&)>;
+
+	template<typename T>
+	using CallNamedFunctionCallback = std::function<JSValue(T&, const std::vector<JSValue>&, JSObject&)>;
+
+	template<typename T>
+	using HasPropertyCallback = std::function<bool(T&, const JSString&)>;
+
+	template<typename T>
+	using GetPropertyCallback = std::function<JSValue(T&, const JSString&)>;
+
+	template<typename T>
+	using SetPropertyCallback = std::function<bool(T&, const JSString&, const JSValue&)>;
+
+	template<typename T>
 	class JSExportClass final : public JSClass {
 	public:
 		JSExportClass() HAL_NOEXCEPT;
@@ -75,14 +92,21 @@ namespace HAL {
 		JSExportClass(const JSExportClass&) = default;
 		JSExportClass(JSExportClass&&) = default;
 
-		virtual void AddValueProperty(const std::string& name, JSObjectGetPropertyCallback, JSObjectSetPropertyCallback) override;
-		virtual void AddConstantProperty(const std::string& name, JSObjectGetPropertyCallback) override;
-		virtual void AddFunctionProperty(const std::string& name, JSObjectCallAsFunctionCallback callback) override;
+		void AddValueProperty(const std::string& name, GetNamedValuePropertyCallback<T>, SetNamedValuePropertyCallback<T>);
+		void AddConstantProperty(const std::string& name, GetNamedValuePropertyCallback<T>);
+		void AddFunctionProperty(const std::string& name, CallNamedFunctionCallback<T> callback);
+		void AddHasPropertyCallback(HasPropertyCallback<T> callback);
+		void AddGetPropertyCallback(GetPropertyCallback<T> callback);
+		void AddSetPropertyCallback(SetPropertyCallback<T> callback);
+
 		virtual void InitializePropertyCallbacks() override;
 
 		static JSValueRef CallGetterFunction(JSContextRef context, JSObjectRef object, JSStringRef propertyName, JSValueRef* exception);
 		static bool CallSetterFunction(JSContextRef context, JSObjectRef object, JSStringRef propertyName, JSValueRef value, JSValueRef* exception);
 		static JSValueRef CallNamedFunction(JSContextRef ctx, JSObjectRef function, JSObjectRef thisObject, size_t argumentCount, const JSValueRef arguments[], JSValueRef *exception);
+		static bool CallHasPropertyCallback(JSContextRef ctx, JSObjectRef thisObject, JSStringRef property_name);
+		static JSValueRef CallGetPropertyCallback(JSContextRef ctx, JSObjectRef thisObject, JSStringRef property_name, JSValueRef* exception);
+		static bool CallSetPropertyCallback(JSContextRef ctx, JSObjectRef thisObject, JSStringRef property_name, JSValueRef value, JSValueRef* exception);
 	protected:
 		// Prevent heap based objects.
 		void* operator new(std::size_t) = delete;   // #1: To prevent allocation of scalar objects
@@ -90,10 +114,14 @@ namespace HAL {
 
 #pragma warning(push)
 #pragma warning(disable: 4251)
-		static std::unordered_map<std::string, JSObjectCallAsFunctionCallback> name_to_function_map__;
-		static std::unordered_map<std::string, JSObjectGetPropertyCallback> name_to_getter_map__;
-		static std::unordered_map<std::string, JSObjectSetPropertyCallback> name_to_setter_map__;
+		static std::unordered_map<std::string, CallNamedFunctionCallback<T>> name_to_function_map__;
+		static std::unordered_map<std::string, GetNamedValuePropertyCallback<T>> name_to_getter_map__;
+		static std::unordered_map<std::string, SetNamedValuePropertyCallback<T>> name_to_setter_map__;
 		static std::unordered_map<std::string, JSValueRef> name_to_constant_map__;
+
+		static HasPropertyCallback<T> has_property_callback__;
+		static GetPropertyCallback<T> get_property_callback__;
+		static SetPropertyCallback<T> set_property_callback__;
 #pragma warning(pop)
 	};
 
@@ -108,19 +136,28 @@ namespace HAL {
 	}
 
 	template<typename T>
-	std::unordered_map<std::string, JSObjectCallAsFunctionCallback> JSExportClass<T>::name_to_function_map__;
+	std::unordered_map<std::string, CallNamedFunctionCallback<T>> JSExportClass<T>::name_to_function_map__;
 
 	template<typename T>
-	std::unordered_map<std::string, JSObjectGetPropertyCallback> JSExportClass<T>::name_to_getter_map__;
+	std::unordered_map<std::string, GetNamedValuePropertyCallback<T>> JSExportClass<T>::name_to_getter_map__;
 
 	template<typename T>
-	std::unordered_map<std::string, JSObjectSetPropertyCallback> JSExportClass<T>::name_to_setter_map__;
+	std::unordered_map<std::string, SetNamedValuePropertyCallback<T>> JSExportClass<T>::name_to_setter_map__;
 
 	template<typename T>
 	std::unordered_map<std::string, JSValueRef> JSExportClass<T>::name_to_constant_map__;
 
 	template<typename T>
-	void JSExportClass<T>::AddFunctionProperty(const std::string& name, JSObjectCallAsFunctionCallback callback) {
+	HasPropertyCallback<T> JSExportClass<T>::has_property_callback__;
+
+	template<typename T>
+	GetPropertyCallback<T> JSExportClass<T>::get_property_callback__;
+
+	template<typename T>
+	SetPropertyCallback<T> JSExportClass<T>::set_property_callback__;
+
+	template<typename T>
+	void JSExportClass<T>::AddFunctionProperty(const std::string& name, CallNamedFunctionCallback<T> callback) {
 		const auto position = name_to_function_map__.find(name);
 		const auto found = position != name_to_function_map__.end();
 		assert(!found);
@@ -128,7 +165,7 @@ namespace HAL {
 	};
 
 	template<typename T>
-	void JSExportClass<T>::AddValueProperty(const std::string& name, JSObjectGetPropertyCallback getter, JSObjectSetPropertyCallback setter) {
+	void JSExportClass<T>::AddValueProperty(const std::string& name, GetNamedValuePropertyCallback<T> getter, SetNamedValuePropertyCallback<T> setter) {
 		{
 			const auto getter_position = name_to_getter_map__.find(name);
 			const auto getter_found = getter_position != name_to_getter_map__.end();
@@ -144,7 +181,7 @@ namespace HAL {
 	};
 
 	template<typename T>
-	void JSExportClass<T>::AddConstantProperty(const std::string& name, JSObjectGetPropertyCallback getter) {
+	void JSExportClass<T>::AddConstantProperty(const std::string& name, GetNamedValuePropertyCallback<T> getter) {
 		const auto getter_position = name_to_getter_map__.find(name);
 		const auto getter_found = getter_position != name_to_getter_map__.end();
 		assert(!getter_found);
@@ -153,20 +190,59 @@ namespace HAL {
 	};
 
 	template<typename T>
+	void JSExportClass<T>::AddHasPropertyCallback(HasPropertyCallback<T> callback) {
+		assert(has_property_callback__ == nullptr);
+		has_property_callback__ = callback;
+	}
+
+	template<typename T>
+	void JSExportClass<T>::AddGetPropertyCallback(GetPropertyCallback<T> callback) {
+		assert(get_property_callback__ == nullptr);
+		get_property_callback__ = callback;
+	}
+
+	template<typename T>
+	void JSExportClass<T>::AddSetPropertyCallback(SetPropertyCallback<T> callback) {
+		assert(set_property_callback__ == nullptr);
+		set_property_callback__ = callback;
+	}
+
+	template<typename T>
 	JSValueRef JSExportClass<T>::CallGetterFunction(JSContextRef context, JSObjectRef object, JSStringRef propertyName, JSValueRef* exception) {
+		// TODO
 		return JSValueMakeUndefined(context);
 	}
 
 	template<typename T>
 	bool JSExportClass<T>::CallSetterFunction(JSContextRef context, JSObjectRef object, JSStringRef propertyName, JSValueRef value, JSValueRef* exception) {
+		// TODO
 		return false;
 	}
 
 	template<typename T>
-	JSValueRef JSExportClass<T>::CallNamedFunction(JSContextRef ctx, JSObjectRef function, JSObjectRef thisObject, size_t argumentCount, const JSValueRef arguments[], JSValueRef *exception)
+	JSValueRef JSExportClass<T>::CallNamedFunction(JSContextRef context, JSObjectRef function, JSObjectRef thisObject, size_t argumentCount, const JSValueRef arguments[], JSValueRef *exception)
 	{
+		// TODO
 		return JSValueMakeUndefined(context);
 	}
+
+	template<typename T>
+	bool CallHasPropertyCallback(JSContextRef context, JSObjectRef thisObject, JSStringRef property_name) {
+		// TODO
+	}
+
+	template<typename T>
+	JSValueRef CallGetPropertyCallback(JSContextRef context, JSObjectRef thisObject, JSStringRef property_name, JSValueRef* exception) {
+		// TODO
+		return JSValueMakeUndefined(context);
+	}
+
+	template<typename T>
+	bool CallSetPropertyCallback(JSContextRef context, JSObjectRef thisObject, JSStringRef property_name, JSValueRef value, JSValueRef* exception) {
+		// TODO
+		return false;
+	}
+
 
 	template<typename T>
 	void JSExportClass<T>::InitializePropertyCallbacks() {
@@ -177,8 +253,8 @@ namespace HAL {
 			for (auto pair : name_to_getter_map__) {
 				const auto property_name = pair.first;
 				JSStaticValue static_value;
-				static_value.name = property_name.c_str()
-				static_value.getProperty = CallGetterrFunction;
+				static_value.name = property_name.c_str();
+				static_value.getProperty = CallGetterFunction;
 				static_value.setProperty = name_to_setter_map__.find(property_name) != name_to_setter_map__.end() ? CallSetterFunction : nullptr;
 				static_value.attributes = kJSPropertyAttributeNone;
 				static_values__.push_back(static_value);
@@ -204,6 +280,19 @@ namespace HAL {
 			static_functions__.push_back({ nullptr, nullptr, kJSPropertyAttributeNone });
 			js_class_definition__.staticFunctions = &static_functions__[0];
 		}
+
+		if (has_property_callback__ != nullptr) {
+			js_class_definition__.hasProperty = CallHasPropertyCallback;
+		}
+
+		if (get_property_callback__ != nullptr) {
+			js_class_definition__.getProperty = CallGetPropertyCallback;
+		}
+
+		if (set_property_callback__ != nullptr) {
+			js_class_definition__.setProperty = CallSetPropertyCallback;
+		}
+
 	}
 } // namespace HAL {
 

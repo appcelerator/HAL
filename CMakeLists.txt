@@ -84,6 +84,9 @@ set(SOURCE_JSValue
 )
 
 set(SOURCE_JSObject
+  include/HAL/JSPropertyAttribute.hpp
+  include/HAL/JSPropertyNameArray.hpp
+  src/JSPropertyNameArray.cpp
   include/HAL/JSObject.hpp
   src/JSObject.cpp
   include/HAL/JSArray.hpp
