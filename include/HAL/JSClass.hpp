@@ -98,6 +98,7 @@ namespace HAL {
 		virtual void Initialize() override;
 
 		static void CallInitializeFunction(JSContextRef context, JSObjectRef object);
+		static void CallFinalizeFunction(JSObjectRef object);
 		static JSValueRef CallGetterFunction(JSContextRef context, JSObjectRef object, JSStringRef propertyName, JSValueRef* exception);
 		static bool CallSetterFunction(JSContextRef context, JSObjectRef object, JSStringRef propertyName, JSValueRef value, JSValueRef* exception);
 		static JSValueRef CallNamedFunction(JSContextRef ctx, JSObjectRef function, JSObjectRef thisObject, size_t argumentCount, const JSValueRef arguments[], JSValueRef *exception);
@@ -214,7 +215,6 @@ namespace HAL {
 
 	template<typename T>
 	void JSExportClass<T>::CallInitializeFunction(JSContextRef context, JSObjectRef object) {
-		// TODO
 		const auto js_context = JSContext(context);
 		auto js_object  = JSObject(js_context, object);
 
@@ -224,6 +224,14 @@ namespace HAL {
 		assert(result);
 	}
 
+	template<typename T>
+	void JSExportClass<T>::CallFinalizeFunction(JSObjectRef object) {
+		auto export_object_ptr = static_cast<JSExport<T>*>(JSObjectGetPrivate(object));
+		if (export_object_ptr) {
+			delete export_object_ptr;
+			JSObjectSetPrivate(object, nullptr);
+		}
+	}
 
 	template<typename T>
 	JSValueRef JSExportClass<T>::CallGetterFunction(JSContextRef context, JSObjectRef object, JSStringRef propertyName, JSValueRef* exception) {
@@ -267,6 +275,7 @@ namespace HAL {
 	void JSExportClass<T>::Initialize() {
 
 		js_class_definition__.initialize = CallInitializeFunction;
+		js_class_definition__.finalize   = CallFinalizeFunction;
 
 		js_class_definition__.staticValues = nullptr;
 		if (!name_to_getter_map__.empty()) {
@@ -274,8 +283,13 @@ namespace HAL {
 
 			for (auto pair : name_to_getter_map__) {
 				const auto property_name = pair.first;
+
+				const auto cptr_size = property_name.size() + 1;
+				auto property_name_cptr = new char[cptr_size];
+				std::char_traits<char>::copy(property_name_cptr, property_name.c_str(), cptr_size);
+
 				JSStaticValue static_value;
-				static_value.name = property_name.c_str();
+				static_value.name = property_name_cptr;
 				static_value.getProperty = CallGetterFunction;
 				static_value.setProperty = name_to_setter_map__.find(property_name) != name_to_setter_map__.end() ? CallSetterFunction : nullptr;
 				static_value.attributes = is_dontenum_set__.find(property_name) != is_dontenum_set__.end() ? kJSPropertyAttributeDontEnum : kJSPropertyAttributeNone;
@@ -292,8 +306,13 @@ namespace HAL {
 
 			for (const auto pair : name_to_function_map__) {
 				const auto function_name = pair.first;
+
+				const auto cptr_size = function_name.size() + 1;
+				auto function_name_cptr = new char[cptr_size];
+				std::char_traits<char>::copy(function_name_cptr, function_name.c_str(), cptr_size);
+
 				JSStaticFunction static_function;
-				static_function.name = function_name.c_str();
+				static_function.name = function_name_cptr;
 				static_function.callAsFunction = CallNamedFunction;
 				static_function.attributes = kJSPropertyAttributeNone;
 				static_functions__.push_back(static_function);
