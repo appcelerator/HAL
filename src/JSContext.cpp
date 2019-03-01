@@ -8,19 +8,22 @@
 
 #include "HAL/JSContext.hpp"
 #include "HAL/JSClass.hpp"
+#include "HAL/JSFunction.hpp"
 #include "HAL/JSString.hpp"
 #include "HAL/JSValue.hpp"
 #include "HAL/JSObject.hpp"
 #include "HAL/JSArray.hpp"
 #include "HAL/JSError.hpp"
 #include "HAL/detail/JSUtil.hpp"
+#include <cassert>
 
 namespace HAL {
 
 	JSGlobalContextRef JSContext::js_global_context_ref__;
 
 	JSObject JSContext::get_global_object() const HAL_NOEXCEPT {
-		return JSObject(JSContextGetGlobalObject(static_cast<JSContextRef>(GetGlobalContext())));
+		assert(js_global_context_ref__ != nullptr);
+		return JSObject(GetGlobalContext(), JSContextGetGlobalObject(js_global_context_ref__));
 	}
 
 	JSObject JSContext::CreateDate() const HAL_NOEXCEPT {
@@ -28,25 +31,41 @@ namespace HAL {
 	}
 
 	JSObject JSContext::CreateDate(const std::vector<JSValue>& arguments) const {
-		const auto js_ctor = get_global_object().GetProperty("Date");
-		assert(js_ctor.IsObject());
-		const auto js_ctor_ref = static_cast<JsValueRef>(js_ctor);
-		JsValueRef new_object;
-		auto js_args = detail::to_arguments(arguments, js_ctor_ref);
-		ASSERT_AND_THROW_JS_ERROR(JsConstructObject(js_ctor_ref, &js_args[0], static_cast<unsigned short>(js_args.size()), &new_object));
-		return JSObject(new_object);
+		JSValueRef exception{ nullptr };
+		JSObjectRef js_object_ref = nullptr;
+		if (!arguments.empty()) {
+			std::vector<JSValueRef> arguments_array = detail::to_vector(arguments);
+			js_object_ref = JSObjectMakeDate(js_context_ref__, arguments_array.size(), &arguments_array[0], &exception);
+		} else {
+			js_object_ref = JSObjectMakeDate(js_context_ref__, 0, nullptr, &exception);
+		}
+		if (exception) {
+			if (js_object_ref) {
+				JSValueUnprotect(js_context_ref__, js_object_ref);
+			}
+			detail::ThrowRuntimeError("Unable to create Date object");
+		}
+		return JSObject(JSContext(js_context_ref__), js_object_ref);
 	}
 
 	JSValue JSContext::CreateValueFromJSON(const JSString& js_string) const {
-		return JSValue(js_string, true);
+		return JSValue(GetGlobalContext(), js_string, true);
+	}
+
+	JSFunction JSContext::CreateFunction(const std::string& body) const {
+		return CreateFunction(body, std::vector<JSString>());
+	}
+
+	JSFunction JSContext::CreateFunction(const std::string& body, const std::vector<JSString>& parameter_names) const {
+		return JSFunction(GetGlobalContext(), body, parameter_names);
 	}
 
 	JSValue JSContext::CreateString() const HAL_NOEXCEPT {
-		return JSValue(JSString(""), false);
+		return JSValue(GetGlobalContext(), JSString(""), false);
 	}
 
 	JSValue JSContext::CreateString(const JSString& js_string) const HAL_NOEXCEPT {
-		return JSValue(js_string, false);
+		return JSValue(GetGlobalContext(), js_string, false);
 	}
 
 	JSValue JSContext::CreateString(const char* string) const HAL_NOEXCEPT {

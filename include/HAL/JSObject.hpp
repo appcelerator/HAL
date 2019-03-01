@@ -114,6 +114,7 @@ namespace HAL {
 		 JavaScript exception.
 		 */
 		virtual void SetProperty(const std::string& property_name, const JSValue& property_value, const std::unordered_set<JSPropertyAttribute>& attributes = {}) final;
+		virtual void SetProperty(const JSString& property_name, const JSValue& property_value, const std::unordered_set<JSPropertyAttribute>& attributes = {}) final;
 
 		/*!
 		 @method

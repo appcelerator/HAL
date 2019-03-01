@@ -22,10 +22,10 @@ namespace HAL {
 	class JSString;
 	class JSValue;
 	class JSObject;
+	class JSFunction;
 	class JSArray;
 	class JSError;
 	class JSExportObject;
-
 }
 
 namespace HAL {
@@ -92,6 +92,43 @@ namespace HAL {
 		JSValue CreateString(const JSString& js_string) const HAL_NOEXCEPT;
 		JSValue CreateString(const char*        string) const HAL_NOEXCEPT;
 		JSValue CreateString(const std::string& string) const HAL_NOEXCEPT;
+
+		/*!
+		 @method
+
+		 @abstract Create a JavaScript function whose body is given as a
+		 string of JavaScript code. Use this method when you want to
+		 execute a script repeatedly to avoid the cost of re-parsing the
+		 script before each execution.
+
+		 @param body A JSString containing the script to use as the
+		 function's body.
+
+		 @param parameter_names An optional JSString array containing the
+		 names of the function's parameters.
+
+		 @param function_name An optional JSString containing the
+		 function's name. This will be used when converting the function
+		 to a string. An empty string creates an anonymous function.
+
+		 @param source_url An optional JSString containing a URL for the
+		 script's source file. This is only used when reporting
+		 exceptions.
+
+		 @param starting_line_number An optional integer value specifying
+		 the script's starting line number in the file located at
+		 source_url. This is only used when reporting exceptions. The
+		 value is one-based, so the first line is line 1 and invalid
+		 values are clamped to 1.
+
+		 @result A JSObject that is a function. The object's prototype
+		 will be the default function prototype.
+
+		 @throws std::invalid_argument if either body, function_name or
+		 parameter_names contains a syntax error.
+		 */
+		JSFunction CreateFunction(const std::string& body) const;
+		JSFunction CreateFunction(const std::string& body, const std::vector<JSString>& parameter_names) const;
 
 		/*!
 		 @method

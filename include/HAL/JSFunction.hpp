@@ -30,6 +30,9 @@ namespace HAL {
 		 friend JSContext;
 
 		 JSFunction(JSContext js_context, JSObjectRef js_object_ref);
+		 JSFunction(JSContext js_context, const std::string& body, const std::vector<JSString>& parameter_names);
+
+		 static JSObjectRef MakeFunction(const JSContext& js_context, const std::string& body, const std::vector<JSString>& parameter_names);
 
 	};
 

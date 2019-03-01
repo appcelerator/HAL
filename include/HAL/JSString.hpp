@@ -104,10 +104,10 @@ namespace HAL {
 		JSString& operator=(JSString) HAL_NOEXCEPT;
 		void swap(JSString&)          HAL_NOEXCEPT;
 
-		// For interoperability with the JSRT API.
+		// For interoperability with the JavaScriptCore API.
 		explicit JSString(JSStringRef js_string_ref) HAL_NOEXCEPT;
 
-		// For interoperability with the JSRT API.
+		// For interoperability with the JavaScriptCore API.
 		explicit operator JSStringRef() const {
 			return js_string_ref__;
 		}

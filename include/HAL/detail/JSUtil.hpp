@@ -17,6 +17,7 @@
 namespace HAL {
 
 	class JSValue;
+	class JSString;
 
 	namespace detail {
 
@@ -55,6 +56,7 @@ namespace HAL {
 		HAL_EXPORT void ThrowRuntimeError(const std::string& message);
 		HAL_EXPORT void ThrowRuntimeError(const std::string& internal_component_name, const std::string& message);
 		HAL_EXPORT std::vector<JSValueRef> to_vector(const std::vector<JSValue>&);
+		HAL_EXPORT std::vector<JSStringRef> to_vector(const std::vector<JSString>&);
 		HAL_EXPORT std::int32_t to_int32_t(double number);
 		HAL_EXPORT unsigned ToJSPropertyAttributes(const std::unordered_set<JSPropertyAttribute>& attributes) HAL_NOEXCEPT;
 

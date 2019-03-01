@@ -9,6 +9,7 @@
 #include "HAL/detail/JSUtil.hpp"
 #include "HAL/JSPropertyAttribute.hpp"
 #include "HAL/JSValue.hpp"
+#include "HAL/JSString.hpp"
 #include <codecvt>
 #include <algorithm>
 
@@ -72,6 +73,15 @@ namespace HAL {
 				std::back_inserter(js_value_ref_vector),
 				[](const JSValue& js_value) { return static_cast<JSValueRef>(js_value); });
 			return js_value_ref_vector;
+		}
+
+		std::vector<JSStringRef> to_vector(const std::vector<JSString>& js_string_vector) {
+			std::vector<JSStringRef> js_string_ref_vector;
+			std::transform(js_string_vector.begin(),
+				js_string_vector.end(),
+				std::back_inserter(js_string_ref_vector),
+				[](const JSString& js_string) { return static_cast<JSStringRef>(js_string); });
+			return js_string_ref_vector;
 		}
 
 		// This in the ToInt32 operation as defined in section 9.5 of the

@@ -227,18 +227,19 @@ namespace HAL {
 	}
 
 	template<typename T>
-	bool CallHasPropertyCallback(JSContextRef context, JSObjectRef thisObject, JSStringRef property_name) {
+	bool JSExportClass<T>::CallHasPropertyCallback(JSContextRef context, JSObjectRef thisObject, JSStringRef property_name) {
 		// TODO
+		return false;
 	}
 
 	template<typename T>
-	JSValueRef CallGetPropertyCallback(JSContextRef context, JSObjectRef thisObject, JSStringRef property_name, JSValueRef* exception) {
+	JSValueRef JSExportClass<T>::CallGetPropertyCallback(JSContextRef context, JSObjectRef thisObject, JSStringRef property_name, JSValueRef* exception) {
 		// TODO
 		return JSValueMakeUndefined(context);
 	}
 
 	template<typename T>
-	bool CallSetPropertyCallback(JSContextRef context, JSObjectRef thisObject, JSStringRef property_name, JSValueRef value, JSValueRef* exception) {
+	bool JSExportClass<T>::CallSetPropertyCallback(JSContextRef context, JSObjectRef thisObject, JSStringRef property_name, JSValueRef value, JSValueRef* exception) {
 		// TODO
 		return false;
 	}

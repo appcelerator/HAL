@@ -59,14 +59,17 @@ namespace HAL {
 	}
 
 	void JSObject::SetProperty(const std::string& property_name, const JSValue& property_value, const std::unordered_set<JSPropertyAttribute>& attributes) {
+		SetProperty(JSString(property_name), property_value, attributes);
+	}
+
+	void JSObject::SetProperty(const JSString& property_name, const JSValue& property_value, const std::unordered_set<JSPropertyAttribute>& attributes) {
 		JSValueRef exception{ nullptr };
-		const auto js_property_name = JSString(property_name);
 		JSObjectSetProperty(static_cast<JSContextRef>(js_context__), js_object_ref__, 
-			static_cast<JSStringRef>(js_property_name), 
+			static_cast<JSStringRef>(property_name), 
 			static_cast<JSValueRef>(property_value), 
 			detail::ToJSPropertyAttributes(attributes), &exception);
 		if (exception) {
-			detail::ThrowRuntimeError("Unable to set property ", property_name);
+			detail::ThrowRuntimeError("Unable to set property");
 		}
 	}
 
