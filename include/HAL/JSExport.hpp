@@ -74,7 +74,7 @@ namespace HAL {
 		static std::once_flag of;
 		std::call_once(of, []() {
 			T::JSExportInitialize();
-			js_class__.InitializePropertyCallbacks();
+			js_class__.Initialize();
 		});
 		return js_class__;
 	}

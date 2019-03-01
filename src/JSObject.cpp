@@ -198,12 +198,14 @@ namespace HAL {
 	}
 
 	JSObject::JSObject(const JSObject& rhs) HAL_NOEXCEPT
-		: js_object_ref__(rhs.js_object_ref__) {
+		: js_object_ref__(rhs.js_object_ref__)
+		, js_context__(rhs.js_context__) {
 		JSValueProtect(static_cast<JSContextRef>(js_context__), js_object_ref__);
 	}
 
 	JSObject::JSObject(JSObject&& rhs) HAL_NOEXCEPT
-		: js_object_ref__(rhs.js_object_ref__) {
+		: js_object_ref__(rhs.js_object_ref__)
+		, js_context__(rhs.js_context__) {
 		JSValueProtect(static_cast<JSContextRef>(js_context__), js_object_ref__);
 	}
 
@@ -218,13 +220,14 @@ namespace HAL {
 
 		// By swapping the members of two classes, the two classes are
 		// effectively swapped.
+		swap(js_context__, other.js_context__);
 		swap(js_object_ref__, other.js_object_ref__);
 	}
 
-	JSObject::JSObject(const JSContext& js_context, const JSClass& js_class, void* private_data)
+	JSObject::JSObject(const JSContext& js_context, const JSClass& js_class)
 		: js_context__(js_context)
-		, js_object_ref__(JSObjectMake(static_cast<JSContextRef>(js_context), static_cast<JSClassRef>(js_class), private_data)) {
-		JSValueProtect(static_cast<JSContextRef>(js_context__), js_object_ref__);
+		, js_object_ref__(JSObjectMake(static_cast<JSContextRef>(js_context), static_cast<JSClassRef>(js_class), nullptr)) {
+
 	}
 
 	// For interoperability with the JavaScriptCore API.

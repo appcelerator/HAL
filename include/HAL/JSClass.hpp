@@ -30,14 +30,10 @@ namespace HAL {
 		virtual ~JSClass() HAL_NOEXCEPT;
 		JSClass(const JSClass& rhs) HAL_NOEXCEPT;
 		JSClass(JSClass&& rhs) HAL_NOEXCEPT;
-		JSClass& operator=(JSClass rhs) HAL_NOEXCEPT {
-			std::swap(js_class_ref__, rhs.js_class_ref__);
-			std::swap(js_class_definition__, rhs.js_class_definition__);
-			return *this;
-		}
+		JSClass& operator=(JSClass rhs) HAL_NOEXCEPT;
 
-		virtual void Initialize(const JSClassDefinition& other);
-		virtual void InitializePropertyCallbacks() { assert(false); }
+		virtual void Copy(const JSClassDefinition& other);
+		virtual void Initialize() { assert(false); }
 
 		void SetParent(const JSClass& js_class) {
 			js_class_definition__.parentClass = static_cast<JSClassRef>(js_class);
@@ -58,7 +54,7 @@ namespace HAL {
 
 #pragma warning(push)
 #pragma warning(disable: 4251)
-		JSClassRef js_class_ref__;
+		JSClassRef js_class_ref__{ nullptr };
 		JSClassDefinition js_class_definition__;
 		std::vector<::JSStaticValue>    static_values__;
 		std::vector<::JSStaticFunction> static_functions__;
@@ -99,14 +95,15 @@ namespace HAL {
 		void AddGetPropertyCallback(GetPropertyCallback<T> callback);
 		void AddSetPropertyCallback(SetPropertyCallback<T> callback);
 
-		virtual void InitializePropertyCallbacks() override;
+		virtual void Initialize() override;
 
+		static void CallInitializeFunction(JSContextRef context, JSObjectRef object);
 		static JSValueRef CallGetterFunction(JSContextRef context, JSObjectRef object, JSStringRef propertyName, JSValueRef* exception);
 		static bool CallSetterFunction(JSContextRef context, JSObjectRef object, JSStringRef propertyName, JSValueRef value, JSValueRef* exception);
 		static JSValueRef CallNamedFunction(JSContextRef ctx, JSObjectRef function, JSObjectRef thisObject, size_t argumentCount, const JSValueRef arguments[], JSValueRef *exception);
-		static bool CallHasPropertyCallback(JSContextRef ctx, JSObjectRef thisObject, JSStringRef property_name);
-		static JSValueRef CallGetPropertyCallback(JSContextRef ctx, JSObjectRef thisObject, JSStringRef property_name, JSValueRef* exception);
-		static bool CallSetPropertyCallback(JSContextRef ctx, JSObjectRef thisObject, JSStringRef property_name, JSValueRef value, JSValueRef* exception);
+		static bool CallHasPropertyFunction(JSContextRef ctx, JSObjectRef thisObject, JSStringRef property_name);
+		static JSValueRef CallGetPropertyFunction(JSContextRef ctx, JSObjectRef thisObject, JSStringRef property_name, JSValueRef* exception);
+		static bool CallSetPropertyFunction(JSContextRef ctx, JSObjectRef thisObject, JSStringRef property_name, JSValueRef value, JSValueRef* exception);
 	protected:
 		// Prevent heap based objects.
 		void* operator new(std::size_t) = delete;   // #1: To prevent allocation of scalar objects
@@ -216,6 +213,19 @@ namespace HAL {
 	}
 
 	template<typename T>
+	void JSExportClass<T>::CallInitializeFunction(JSContextRef context, JSObjectRef object) {
+		// TODO
+		const auto js_context = JSContext(context);
+		auto js_object  = JSObject(js_context, object);
+
+		const auto export_object_ptr = new T(js_context);
+		const auto result = js_object.SetPrivate(export_object_ptr);
+		export_object_ptr->postInitialize(js_object);
+		assert(result);
+	}
+
+
+	template<typename T>
 	JSValueRef JSExportClass<T>::CallGetterFunction(JSContextRef context, JSObjectRef object, JSStringRef propertyName, JSValueRef* exception) {
 		// TODO
 		return JSValueMakeUndefined(context);
@@ -235,26 +245,29 @@ namespace HAL {
 	}
 
 	template<typename T>
-	bool JSExportClass<T>::CallHasPropertyCallback(JSContextRef context, JSObjectRef thisObject, JSStringRef property_name) {
+	bool JSExportClass<T>::CallHasPropertyFunction(JSContextRef context, JSObjectRef thisObject, JSStringRef property_name) {
 		// TODO
 		return false;
 	}
 
 	template<typename T>
-	JSValueRef JSExportClass<T>::CallGetPropertyCallback(JSContextRef context, JSObjectRef thisObject, JSStringRef property_name, JSValueRef* exception) {
+	JSValueRef JSExportClass<T>::CallGetPropertyFunction(JSContextRef context, JSObjectRef thisObject, JSStringRef property_name, JSValueRef* exception) {
 		// TODO
 		return JSValueMakeUndefined(context);
 	}
 
 	template<typename T>
-	bool JSExportClass<T>::CallSetPropertyCallback(JSContextRef context, JSObjectRef thisObject, JSStringRef property_name, JSValueRef value, JSValueRef* exception) {
+	bool JSExportClass<T>::CallSetPropertyFunction(JSContextRef context, JSObjectRef thisObject, JSStringRef property_name, JSValueRef value, JSValueRef* exception) {
 		// TODO
 		return false;
 	}
 
 
 	template<typename T>
-	void JSExportClass<T>::InitializePropertyCallbacks() {
+	void JSExportClass<T>::Initialize() {
+
+		js_class_definition__.initialize = CallInitializeFunction;
+
 		js_class_definition__.staticValues = nullptr;
 		if (!name_to_getter_map__.empty()) {
 			static_values__.clear();
@@ -291,16 +304,22 @@ namespace HAL {
 		}
 
 		if (has_property_callback__ != nullptr) {
-			js_class_definition__.hasProperty = CallHasPropertyCallback;
+			js_class_definition__.hasProperty = CallHasPropertyFunction;
 		}
 
 		if (get_property_callback__ != nullptr) {
-			js_class_definition__.getProperty = CallGetPropertyCallback;
+			js_class_definition__.getProperty = CallGetPropertyFunction;
 		}
 
 		if (set_property_callback__ != nullptr) {
-			js_class_definition__.setProperty = CallSetPropertyCallback;
+			js_class_definition__.setProperty = CallSetPropertyFunction;
 		}
+
+		if (js_class_ref__) {
+			JSClassRelease(js_class_ref__);
+		}
+
+		js_class_ref__ = JSClassCreate(&js_class_definition__);
 
 	}
 } // namespace HAL {

@@ -19,18 +19,30 @@ namespace HAL {
 		JSClassRelease(js_class_ref__);
 	}
 	JSClass::JSClass(const JSClass& rhs) HAL_NOEXCEPT
-		: js_class_ref__(rhs.js_class_ref__) {
-		Initialize(rhs.js_class_definition__);
+		: js_class_ref__(rhs.js_class_ref__)
+		, static_values__(rhs.static_values__)
+		, static_functions__(rhs.static_functions__) {
+		Copy(rhs.js_class_definition__);
 		JSClassRetain(js_class_ref__);
 	}
 	JSClass::JSClass(JSClass&& rhs) HAL_NOEXCEPT
 		: js_class_ref__(rhs.js_class_ref__)
-		, js_class_definition__(rhs.js_class_definition__) {
-		Initialize(rhs.js_class_definition__);
+		, static_values__(rhs.static_values__)
+		, static_functions__(rhs.static_functions__) {
+		Copy(rhs.js_class_definition__);
 		JSClassRetain(js_class_ref__);
 	}
 
-	void JSClass::Initialize(const JSClassDefinition& other) {
+	JSClass& JSClass::operator=(JSClass rhs) HAL_NOEXCEPT {
+		Copy(rhs.js_class_definition__);
+		static_values__    = rhs.static_values__;
+		static_functions__ = rhs.static_functions__;
+		js_class_ref__     = rhs.js_class_ref__;
+		JSClassRetain(js_class_ref__);
+		return *this;
+	}
+
+	void JSClass::Copy(const JSClassDefinition& other) {
 		js_class_definition__.version = other.version;
 		js_class_definition__.attributes = other.attributes;
 
@@ -48,6 +60,8 @@ namespace HAL {
 		js_class_definition__.callAsConstructor = other.callAsConstructor;
 		js_class_definition__.hasInstance = other.hasInstance;
 		js_class_definition__.convertToType = other.convertToType;
+		js_class_definition__.staticValues = other.staticValues;
+		js_class_definition__.staticFunctions = other.staticFunctions;
 	}
 
 }

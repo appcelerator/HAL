@@ -306,6 +306,9 @@ namespace HAL {
 		template<typename T>
 		std::shared_ptr<T> GetPrivate() const HAL_NOEXCEPT;
 
+		template<typename T>
+		friend class JSExportClass;
+
 		virtual ~JSObject()            HAL_NOEXCEPT;
 		JSObject(const JSObject&)      HAL_NOEXCEPT;
 		JSObject(JSObject&&)           HAL_NOEXCEPT;
@@ -366,8 +369,6 @@ namespace HAL {
 		 this method because the default JSObject constructor does not
 		 allocate storage for private data.
 
-		 @param data A void* to set as this object's private data.
-
 		 @result true if this object can store private data.
 		 */
 		virtual bool SetPrivate(void* data) const HAL_NOEXCEPT final;
@@ -376,7 +377,7 @@ namespace HAL {
 		// following constructor.
 		friend class JSContext;
 
-		JSObject(const JSContext& js_context, const JSClass& js_class, void* private_data = nullptr);
+		JSObject(const JSContext& js_context, const JSClass& js_class);
 
 		// Silence 4251 on Windows since private member variables do not
 		// need to be exported from a DLL.
