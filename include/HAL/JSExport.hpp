@@ -27,7 +27,7 @@ namespace HAL {
 	protected:
 		static JSExportClass<T> js_class__;
 		static void AddFunctionProperty(const std::string& name, CallNamedFunctionCallback<T> callback);
-		static void AddValueProperty(const std::string& name, GetNamedValuePropertyCallback<T> getter, SetNamedValuePropertyCallback<T> setter = nullptr);
+		static void AddValueProperty(const std::string& name, GetNamedValuePropertyCallback<T> getter, SetNamedValuePropertyCallback<T> setter = nullptr, bool enumerable = true);
 		static void AddConstantProperty(const std::string& name, GetNamedValuePropertyCallback<T> getter);
 		static void AddHasPropertyCallback(HasPropertyCallback<T> callback);
 		static void AddGetPropertyCallback(GetPropertyCallback<T> callback);
@@ -45,8 +45,8 @@ namespace HAL {
 	}
 
 	template<typename T>
-	void JSExport<T>::AddValueProperty(const std::string& name, GetNamedValuePropertyCallback<T> getter, SetNamedValuePropertyCallback<T> setter) {
-		js_class__.AddValueProperty(name, getter, setter);
+	void JSExport<T>::AddValueProperty(const std::string& name, GetNamedValuePropertyCallback<T> getter, SetNamedValuePropertyCallback<T> setter, bool enumerable) {
+		js_class__.AddValueProperty(name, getter, setter, enumerable);
 	}
 
 	template<typename T>

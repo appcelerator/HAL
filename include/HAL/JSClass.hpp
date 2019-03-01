@@ -92,7 +92,7 @@ namespace HAL {
 		JSExportClass(const JSExportClass&) = default;
 		JSExportClass(JSExportClass&&) = default;
 
-		void AddValueProperty(const std::string& name, GetNamedValuePropertyCallback<T>, SetNamedValuePropertyCallback<T>);
+		void AddValueProperty(const std::string& name, GetNamedValuePropertyCallback<T>, SetNamedValuePropertyCallback<T>, bool enumerable);
 		void AddConstantProperty(const std::string& name, GetNamedValuePropertyCallback<T>);
 		void AddFunctionProperty(const std::string& name, CallNamedFunctionCallback<T> callback);
 		void AddHasPropertyCallback(HasPropertyCallback<T> callback);
@@ -118,6 +118,7 @@ namespace HAL {
 		static std::unordered_map<std::string, GetNamedValuePropertyCallback<T>> name_to_getter_map__;
 		static std::unordered_map<std::string, SetNamedValuePropertyCallback<T>> name_to_setter_map__;
 		static std::unordered_map<std::string, JSValueRef> name_to_constant_map__;
+		static std::unordered_set<std::string> is_dontenum_set__;
 
 		static HasPropertyCallback<T> has_property_callback__;
 		static GetPropertyCallback<T> get_property_callback__;
@@ -148,6 +149,9 @@ namespace HAL {
 	std::unordered_map<std::string, JSValueRef> JSExportClass<T>::name_to_constant_map__;
 
 	template<typename T>
+	std::unordered_set<std::string> JSExportClass<T>::is_dontenum_set__;
+
+	template<typename T>
 	HasPropertyCallback<T> JSExportClass<T>::has_property_callback__;
 
 	template<typename T>
@@ -165,7 +169,7 @@ namespace HAL {
 	};
 
 	template<typename T>
-	void JSExportClass<T>::AddValueProperty(const std::string& name, GetNamedValuePropertyCallback<T> getter, SetNamedValuePropertyCallback<T> setter) {
+	void JSExportClass<T>::AddValueProperty(const std::string& name, GetNamedValuePropertyCallback<T> getter, SetNamedValuePropertyCallback<T> setter, bool enumerable) {
 		{
 			const auto getter_position = name_to_getter_map__.find(name);
 			const auto getter_found = getter_position != name_to_getter_map__.end();
@@ -177,6 +181,10 @@ namespace HAL {
 			const auto setter_found = setter_position != name_to_setter_map__.end();
 			assert(!setter_found);
 			name_to_setter_map__.emplace(name, setter);
+		}
+
+		if (!enumerable) {
+			is_dontenum_set__.emplace(name);
 		}
 	};
 
@@ -257,7 +265,7 @@ namespace HAL {
 				static_value.name = property_name.c_str();
 				static_value.getProperty = CallGetterFunction;
 				static_value.setProperty = name_to_setter_map__.find(property_name) != name_to_setter_map__.end() ? CallSetterFunction : nullptr;
-				static_value.attributes = kJSPropertyAttributeNone;
+				static_value.attributes = is_dontenum_set__.find(property_name) != is_dontenum_set__.end() ? kJSPropertyAttributeDontEnum : kJSPropertyAttributeNone;
 				static_values__.push_back(static_value);
 			}
 
