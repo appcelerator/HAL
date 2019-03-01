@@ -263,7 +263,7 @@ namespace HAL {
 		 @result A JSObject that is a Error.
 		 */
 		JSError CreateError() const HAL_NOEXCEPT;
-		JSError CreateError(const std::string& message) const HAL_NOEXCEPT;
+		JSError CreateError(const std::vector<JSValue>& arguments) const HAL_NOEXCEPT;
 
 		/* Script Evaluation */
 

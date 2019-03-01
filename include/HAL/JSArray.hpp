@@ -109,7 +109,7 @@ private:
 	friend JSObject;
 	
 	JSArray(JSContext js_context, JSObjectRef js_object_ref);
-	JSArray(JSContext js_context, const std::vector<JSValue>& arguments);
+	JSArray(JSContext js_context, const std::vector<JSValue>& arguments = {});
 
 	static JSObjectRef MakeArray(const JSContext& js_context, const std::vector<JSValue>& arguments);
 

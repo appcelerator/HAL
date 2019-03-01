@@ -77,55 +77,39 @@ namespace HAL {
 	}
 
 	JSValue JSContext::CreateUndefined() const HAL_NOEXCEPT {
-		JsValueRef undefinedValue;
-		ASSERT_AND_THROW_JS_ERROR(JsGetUndefinedValue(&undefinedValue));
-		return undefinedValue;
+		return JSValue(GetGlobalContext(), JSValueMakeUndefined(js_context_ref__));
 	}
 
 	JSValue JSContext::CreateNull() const HAL_NOEXCEPT {
-		JsValueRef nullValue;
-		ASSERT_AND_THROW_JS_ERROR(JsGetNullValue(&nullValue));
-		return nullValue;
+		return JSValue(GetGlobalContext(), JSValueMakeNull(js_context_ref__));
 	}
 
 	JSValue JSContext::CreateBoolean(bool boolean) const HAL_NOEXCEPT {
-		JsValueRef boolValue;
-		ASSERT_AND_THROW_JS_ERROR(JsBoolToBoolean(boolean, &boolValue));
-		return boolValue;
+		return JSValue(GetGlobalContext(), JSValueMakeBoolean(js_context_ref__, boolean));
 	}
 
 	JSValue JSContext::CreateNumber(double number) const HAL_NOEXCEPT {
-		JsValueRef numberValue;
-		ASSERT_AND_THROW_JS_ERROR(JsDoubleToNumber(number, &numberValue));
-		return numberValue;
+		return JSValue(GetGlobalContext(), JSValueMakeNumber(js_context_ref__, number));
 	}
 
 	JSValue JSContext::CreateNumber(int32_t number) const HAL_NOEXCEPT {
-		JsValueRef numberValue;
-		ASSERT_AND_THROW_JS_ERROR(JsIntToNumber(number, &numberValue));
-		return numberValue;
+		return JSValue(GetGlobalContext(), JSValueMakeNumber(js_context_ref__, static_cast<double>(number)));
 	}
 
 	JSValue JSContext::CreateNumber(uint32_t number) const HAL_NOEXCEPT {
-		JsValueRef numberValue;
-		JsIntToNumber(number, &numberValue);
-		return numberValue;
+		return JSValue(GetGlobalContext(), JSValueMakeNumber(js_context_ref__, static_cast<double>(number)));
 	}
 
 	JSObject JSContext::CreateObject() const HAL_NOEXCEPT {
-		return JSObject(nullptr);
+		return CreateObject(JSClass());
 	}
 
 	JSObject JSContext::CreateObject(const JSClass& js_class) const HAL_NOEXCEPT {
-		return JSObject(js_class);
+		return JSObject(GetGlobalContext(), js_class);
 	}
 
 	JSObject JSContext::CreateObject(const std::unordered_map<std::string, JSValue>& properties) const HAL_NOEXCEPT {
-		auto object = JSObject(nullptr);
-		for (const auto kv : properties) {
-			object.SetProperty(kv.first, kv.second);
-		}
-		return object;
+		return CreateObject(JSClass(), properties);
 	}
 
 	JSObject JSContext::CreateObject(const JSClass& js_class, const std::unordered_map<std::string, JSValue>& properties) const HAL_NOEXCEPT {
@@ -137,91 +121,59 @@ namespace HAL {
 	}
 
 	JSArray JSContext::CreateArray() const HAL_NOEXCEPT {
-		JsValueRef arrayValue;
-		ASSERT_AND_THROW_JS_ERROR(JsCreateArray(0, &arrayValue));
-		return JSArray(arrayValue);
+		return JSArray(GetGlobalContext());
 	}
 
 	JSArray JSContext::CreateArray(const std::vector<JSValue>& arguments) const {
-		JsValueRef arrayValue;
-		ASSERT_AND_THROW_JS_ERROR(JsCreateArray(arguments.size(), &arrayValue));
-
-		for (std::size_t i = 0; i < arguments.size(); i++) {
-			JsValueRef index;
-			ASSERT_AND_THROW_JS_ERROR(JsIntToNumber(static_cast<int>(i), &index));
-			ASSERT_AND_THROW_JS_ERROR(JsSetIndexedProperty(arrayValue, index, static_cast<JsValueRef>(arguments.at(i))));
-		}
-
-		return JSArray(arrayValue, arguments);
+		return JSArray(GetGlobalContext(), arguments);
 	}
 
 	JSError JSContext::CreateError() const HAL_NOEXCEPT {
-		JsValueRef errorValue;
-		ASSERT_AND_THROW_JS_ERROR(JsCreateError(static_cast<JsValueRef>(CreateUndefined()), &errorValue));
-		return JSError(errorValue);
+		return JSError(GetGlobalContext());
 	}
 
-	JSError JSContext::CreateError(const std::string& message) const HAL_NOEXCEPT {
-		JsValueRef errorValue;
-		ASSERT_AND_THROW_JS_ERROR(JsCreateError(static_cast<JsValueRef>(CreateString(message)), &errorValue));
-		return JSError(errorValue);
+	JSError JSContext::CreateError(const std::vector<JSValue>& arguments) const HAL_NOEXCEPT {
+		return JSError(GetGlobalContext(), arguments);
 	}
 
-	JSValue JSContext::JSEvaluateScript(const std::string& script, const std::string& source_url) const {
-		std::wstring script_string = L"";
-		std::wstring source_url_string = L"";
-		if (!script.empty()) {
-			script_string = detail::to_wstring(script);
-		}
-		if (!source_url.empty()) {
-			source_url_string = detail::to_wstring(source_url);
-		}
-
-		JsValueRef executable;
-		ASSERT_AND_THROW_JS_ERROR(JsParseScript(script_string.data(), 0, source_url_string.data(), &executable));
-
-		auto js_executable = JSObject(executable);
-		assert(js_executable.IsFunction());
-
-		return js_executable(get_global_object());
+	JSValue JSContext::JSEvaluateScript(const std::string& content, const std::string& source_url) const {
+		return JSEvaluateScript(content, get_global_object(), source_url);
 	}
 
 	JSValue JSContext::JSEvaluateScript(const std::string& content, JSObject this_object, const std::string& source_url) const {
-		std::wstring script_string = L"";
-		std::wstring source_url_string = L"";
-		if (!content.empty()) {
-			std::string script = "(function() {\n {\n" + content + "\n}\n return this; })";
-			script_string = detail::to_wstring(script);
+		const auto js_source_url = JSString(source_url);
+		const auto js_content = JSString(content);
+		JSValueRef js_value_ref{ nullptr };
+		const JSStringRef source_url_ref = source_url.empty() ? nullptr : static_cast<JSStringRef>(js_source_url);
+		JSValueRef exception{ nullptr };
+		js_value_ref = ::JSEvaluateScript(js_global_context_ref__, static_cast<JSStringRef>(js_content), static_cast<JSObjectRef>(this_object), source_url_ref, 0, &exception);
+
+		if (exception) {
+			if (js_value_ref) {
+				JSValueUnprotect(js_global_context_ref__, js_value_ref);
+			}
+			detail::ThrowRuntimeError(static_cast<std::string>(JSValue(JSContext(js_global_context_ref__), exception)));
 		}
-		if (!source_url.empty()) {
-			source_url_string = detail::to_wstring(source_url);
-		}
 
-		JsValueRef executable;
-		ASSERT_AND_THROW_JS_ERROR(JsParseScript(script_string.data(), 0, source_url_string.data(), &executable));
-
-		auto js_executable = static_cast<JSObject>(JSObject(executable)(this_object));
-		assert(js_executable.IsFunction());
-
-		JsValueRef executor;
-		ASSERT_AND_THROW_JS_ERROR(JsParseScript(L"(function(func, global) { return func.call(global); })", 0, L"", &executor));
-
-		auto js_executor = JSObject(executor)(this_object);
-		assert(js_executor.IsObject());
-
-		const std::vector<JSValue> executor_args = { js_executable, this_object };
-		return static_cast<JSObject>(js_executor)(executor_args, this_object);
+		return JSValue(GetGlobalContext(), js_value_ref);
 	}
 
-	bool JSContext::JSCheckScriptSyntax(const std::string& script, const std::string& source_url) const HAL_NOEXCEPT {
-		// FIXME TODO IMPLEMENT
-		return true;
+	bool JSContext::JSCheckScriptSyntax(const std::string& content, const std::string& source_url) const HAL_NOEXCEPT {
+		const auto js_source_url = JSString(source_url);
+		const auto js_content = JSString(content);
+		const JSStringRef source_url_ref = (source_url.length() > 0) ? static_cast<JSStringRef>(js_source_url) : nullptr;
+		JSValueRef exception{ nullptr };
+		bool result = ::JSCheckScriptSyntax(js_global_context_ref__, static_cast<JSStringRef>(js_content), source_url_ref, 0, &exception);
+
+		if (exception) {
+			detail::ThrowRuntimeError(static_cast<std::string>(JSValue(JSContext(js_global_context_ref__), exception)));
+		}
+
+		return result;
 	}
 
 	void JSContext::GarbageCollect() const HAL_NOEXCEPT {
-		JsRuntimeHandle runtime;
-		ASSERT_AND_THROW_JS_ERROR(JsGetRuntime(js_context_ref__, &runtime));
-		JsCollectGarbage(runtime);
+		JSGarbageCollect(js_global_context_ref__);
 	}
 
 	JSContext::~JSContext() HAL_NOEXCEPT {

@@ -44,9 +44,10 @@ namespace HAL {
 		 friend JSContext;
 		 friend JSObject;
 
+		 JSError(JSContext js_context, const std::vector<JSValue>& arguments = {});
 		 JSError(JSContext js_context, JSObjectRef js_object_ref);
-		 JSError(JSContext js_context, JSObjectRef js_object_ref, const std::vector<JSValue>& arguments);
 
+		 static JSObjectRef MakeError(const JSContext& js_context, const std::vector<JSValue>& arguments);
 	};
 
 } // namespace HAL {

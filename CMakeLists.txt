@@ -56,6 +56,7 @@ set(SOURCE_HAL
 
 set(SOURCE_HAL_detail
   include/HAL/detail/JSBase.hpp
+  src/detail/JSBase.cpp
   include/HAL/detail/JSUtil.hpp
   src/detail/JSUtil.cpp
 )
