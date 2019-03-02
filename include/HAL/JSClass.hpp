@@ -221,7 +221,7 @@ namespace HAL {
 
 		const auto export_object_ptr = new T(js_context);
 		const auto result = js_object.SetPrivate(export_object_ptr);
-		export_object_ptr->preInitialize(js_object);
+		export_object_ptr->initialize(js_object);
 		export_object_ptr->postInitialize(js_object);
 		assert(result);
 		// TODO try-catch
