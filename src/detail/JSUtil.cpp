@@ -84,6 +84,15 @@ namespace HAL {
 			return js_string_ref_vector;
 		}
 
+		std::vector<JSValue> to_vector(const JSContext& js_context, size_t count, const JSValueRef js_value_ref_array[]) {
+			std::vector<JSValue> js_value_vector;
+			std::transform(js_value_ref_array,
+				js_value_ref_array + count,
+				std::back_inserter(js_value_vector),
+				[&js_context](JSValueRef value_ref) { return JSValue(js_context, value_ref); });
+			return js_value_vector;
+		}
+
 		// This in the ToInt32 operation as defined in section 9.5 of the
 		// ECMA-262 spec. Note that this operation is identical to ToUInt32
 		// other than to interpretation of the resulting bit-pattern (as

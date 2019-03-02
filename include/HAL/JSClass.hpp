@@ -11,7 +11,6 @@
 
 #include "HAL/detail/JSBase.hpp"
 #include "HAL/detail/JSUtil.hpp"
-#include "HAL/JSString.hpp"
 #include <functional>
 #include <vector>
 #include <unordered_map>
@@ -23,6 +22,7 @@ namespace HAL {
 	class JSContext;
 	class JSValue;
 	class JSObject;
+	class JSString;
 
 	class HAL_EXPORT JSClass {
 	public:
@@ -99,6 +99,7 @@ namespace HAL {
 
 		static void CallInitializeFunction(JSContextRef context, JSObjectRef object);
 		static void CallFinalizeFunction(JSObjectRef object);
+		static JSObjectRef CallAsConstructorFunction(JSContextRef ctx, JSObjectRef constructor, size_t argumentCount, const JSValueRef arguments[], JSValueRef *exception);
 		static JSValueRef CallGetterFunction(JSContextRef context, JSObjectRef object, JSStringRef propertyName, JSValueRef* exception);
 		static bool CallSetterFunction(JSContextRef context, JSObjectRef object, JSStringRef propertyName, JSValueRef value, JSValueRef* exception);
 		static JSValueRef CallNamedFunction(JSContextRef ctx, JSObjectRef function, JSObjectRef thisObject, size_t argumentCount, const JSValueRef arguments[], JSValueRef *exception);
@@ -220,53 +221,155 @@ namespace HAL {
 
 		const auto export_object_ptr = new T(js_context);
 		const auto result = js_object.SetPrivate(export_object_ptr);
+		export_object_ptr->preInitialize(js_object);
 		export_object_ptr->postInitialize(js_object);
 		assert(result);
+		// TODO try-catch
 	}
 
 	template<typename T>
 	void JSExportClass<T>::CallFinalizeFunction(JSObjectRef object) {
-		auto export_object_ptr = static_cast<JSExport<T>*>(JSObjectGetPrivate(object));
+		const auto export_object_ptr = static_cast<T*>(JSObjectGetPrivate(object));
 		if (export_object_ptr) {
 			delete export_object_ptr;
 			JSObjectSetPrivate(object, nullptr);
 		}
+		// TODO try-catch
+		// TODO assert
 	}
 
 	template<typename T>
-	JSValueRef JSExportClass<T>::CallGetterFunction(JSContextRef context, JSObjectRef object, JSStringRef propertyName, JSValueRef* exception) {
-		// TODO
+	JSObjectRef JSExportClass<T>::CallAsConstructorFunction(JSContextRef context, JSObjectRef constructor, size_t argumentCount, const JSValueRef arguments[], JSValueRef *exception) {
+		const auto js_context = JSContext(context);
+		auto js_constructor = JSObject(js_context, constructor);
+
+		auto new_object = js_context.CreateObject(JSExport<T>::Class());
+		new_object.SetProperty("constructor", js_constructor);
+
+		const auto export_object_ptr = static_cast<T*>(new_object.GetPrivate());
+		const auto js_arguments = detail::to_vector(js_context, argumentCount, arguments);
+		export_object_ptr->postCallAsConstructor(js_context, js_arguments);
+
+		// TODO try-catch
+		// TODO assert
+		return static_cast<JSObjectRef>(new_object);
+	}
+
+
+	template<typename T>
+	JSValueRef JSExportClass<T>::CallGetterFunction(JSContextRef context, JSObjectRef thisObject, JSStringRef property_name_ref, JSValueRef* exception) {
+		const auto property_name = static_cast<std::string>(JSString(property_name_ref));
+		const auto js_context = JSContext(context);
+		const auto js_object = JSObject(js_context, thisObject);
+		const auto export_object_ptr = static_cast<T*>(js_object.GetPrivate());
+
+		if (export_object_ptr) {
+
+			// Check constant cache
+			const auto constant_position = name_to_constant_map__.find(property_name);
+			const auto constant_found = constant_position != name_to_constant_map__.end();
+
+			if (constant_found && constant_position->second != nullptr) {
+				return constant_position->second;
+			}
+
+			const auto position = name_to_getter_map__.find(property_name);
+			const auto found = position != name_to_getter_map__.end();
+			if (found) {
+				const auto value_ref = static_cast<JSValueRef>(position->second(*export_object_ptr));
+				if (constant_found) {
+					name_to_constant_map__.emplace(property_name, value_ref);
+				}
+				return value_ref;
+			}
+		}
+
+		// TODO constant cache
+		// TODO try-catch
+		// TODO assert
 		return JSValueMakeUndefined(context);
 	}
 
 	template<typename T>
-	bool JSExportClass<T>::CallSetterFunction(JSContextRef context, JSObjectRef object, JSStringRef propertyName, JSValueRef value, JSValueRef* exception) {
-		// TODO
+	bool JSExportClass<T>::CallSetterFunction(JSContextRef context, JSObjectRef thisObject, JSStringRef property_name_ref, JSValueRef value, JSValueRef* exception) {
+		const auto property_name = static_cast<std::string>(JSString(property_name_ref));
+		const auto js_context = JSContext(context);
+		const auto js_object = JSObject(js_context, thisObject);
+
+		const auto export_object_ptr = static_cast<T*>(js_object.GetPrivate());
+
+		if (export_object_ptr) {
+			const auto position = name_to_setter_map__.find(property_name);
+			const auto found = position != name_to_setter_map__.end();
+			if (found) {
+				return position->second(*export_object_ptr, JSValue(js_context, value));
+			}
+		}
+
+		// TODO try-catch
+		// TODO assert
 		return false;
 	}
 
 	template<typename T>
 	JSValueRef JSExportClass<T>::CallNamedFunction(JSContextRef context, JSObjectRef function, JSObjectRef thisObject, size_t argumentCount, const JSValueRef arguments[], JSValueRef *exception)
 	{
-		// TODO
+		const auto js_context = JSContext(context);
+		auto js_object = JSObject(js_context, thisObject);
+		const auto js_function = JSObject(js_context, function);
+		const auto js_function_name = js_function.GetProperty("name");
+		assert(js_function_name.IsString());
+		const auto function_name = static_cast<std::string>(js_function_name);
+
+		const auto export_object_ptr = static_cast<T*>(js_object.GetPrivate());
+
+		if (export_object_ptr) {
+			const auto position = name_to_function_map__.find(function_name);
+			const auto found = position != name_to_function_map__.end();
+			if (found) {
+				const auto js_arguments = detail::to_vector(js_context, argumentCount, arguments);
+				return static_cast<JSValueRef>(position->second(*export_object_ptr, js_arguments, js_object));
+			}
+		}
+
+		// TODO try-catch
+		// TODO assert
 		return JSValueMakeUndefined(context);
 	}
 
 	template<typename T>
-	bool JSExportClass<T>::CallHasPropertyFunction(JSContextRef context, JSObjectRef thisObject, JSStringRef property_name) {
+	bool JSExportClass<T>::CallHasPropertyFunction(JSContextRef context, JSObjectRef thisObject, JSStringRef property_name_ref) {
 		// TODO
+		const auto property_name = static_cast<std::string>(JSString(property_name_ref));
+		const auto js_context = JSContext(context);
+		auto js_object = JSObject(js_context, thisObject);
+
+		// TODO try-catch
+		// TODO assert
 		return false;
 	}
 
 	template<typename T>
-	JSValueRef JSExportClass<T>::CallGetPropertyFunction(JSContextRef context, JSObjectRef thisObject, JSStringRef property_name, JSValueRef* exception) {
+	JSValueRef JSExportClass<T>::CallGetPropertyFunction(JSContextRef context, JSObjectRef thisObject, JSStringRef property_name_ref, JSValueRef* exception) {
 		// TODO
+		const auto property_name = static_cast<std::string>(JSString(property_name_ref));
+		const auto js_context = JSContext(context);
+		auto js_object = JSObject(js_context, thisObject);
+
+		// TODO try-catch
+		// TODO assert
 		return JSValueMakeUndefined(context);
 	}
 
 	template<typename T>
-	bool JSExportClass<T>::CallSetPropertyFunction(JSContextRef context, JSObjectRef thisObject, JSStringRef property_name, JSValueRef value, JSValueRef* exception) {
+	bool JSExportClass<T>::CallSetPropertyFunction(JSContextRef context, JSObjectRef thisObject, JSStringRef property_name_ref, JSValueRef value, JSValueRef* exception) {
 		// TODO
+		const auto property_name = static_cast<std::string>(JSString(property_name_ref));
+		const auto js_context = JSContext(context);
+		auto js_object = JSObject(js_context, thisObject);
+
+		// TODO try-catch
+		// TODO assert
 		return false;
 	}
 
@@ -274,13 +377,15 @@ namespace HAL {
 	template<typename T>
 	void JSExportClass<T>::Initialize() {
 
+		assert(static_values__.empty());
+		assert(static_functions__.empty());
+
 		js_class_definition__.initialize = CallInitializeFunction;
 		js_class_definition__.finalize   = CallFinalizeFunction;
+		js_class_definition__.callAsConstructor = CallAsConstructorFunction;
 
 		js_class_definition__.staticValues = nullptr;
 		if (!name_to_getter_map__.empty()) {
-			static_values__.clear();
-
 			for (auto pair : name_to_getter_map__) {
 				const auto property_name = pair.first;
 

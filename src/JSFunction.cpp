@@ -7,6 +7,7 @@
  */
 
 #include "HAL/JSFunction.hpp"
+#include "HAL/JSString.hpp"
 
 namespace HAL {
 

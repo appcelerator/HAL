@@ -14,8 +14,12 @@ namespace HAL {
 		: js_context_ref__(static_cast<JSContextRef>(js_context)) {
 	}
 
-	void JSExportObject::postInitialize(JSObject& js_object) {
+	void JSExportObject::preInitialize(JSObject& js_object) {
 		js_object_ref__ = static_cast<JSObjectRef>(js_object);
+	}
+
+	void JSExportObject::postInitialize(JSObject& js_object) {
+		// NOTHING TO DO
 	}
 
 	void JSExportObject::postCallAsConstructor(const JSContext&, const std::vector<JSValue>&) {

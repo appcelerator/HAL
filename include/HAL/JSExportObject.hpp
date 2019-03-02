@@ -23,6 +23,7 @@ namespace HAL {
 
 		}
 
+		virtual void preInitialize(JSObject& js_object);
 		virtual void postInitialize(JSObject& js_object);
 		virtual void postCallAsConstructor(const JSContext&, const std::vector<JSValue>&);
 
