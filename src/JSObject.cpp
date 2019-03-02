@@ -194,23 +194,23 @@ namespace HAL {
 	}
 
 	JSObject::~JSObject() HAL_NOEXCEPT {
-		JSValueUnprotect(static_cast<JSContextRef>(js_context__), js_object_ref__);
+		JSValue::Unprotect(static_cast<JSContextRef>(js_context__), js_object_ref__);
 	}
 
 	JSObject::JSObject(const JSObject& rhs) HAL_NOEXCEPT
 		: js_object_ref__(rhs.js_object_ref__)
 		, js_context__(rhs.js_context__) {
-		JSValueProtect(static_cast<JSContextRef>(js_context__), js_object_ref__);
+		JSValue::Protect(static_cast<JSContextRef>(js_context__), js_object_ref__);
 	}
 
 	JSObject::JSObject(JSObject&& rhs) HAL_NOEXCEPT
 		: js_object_ref__(rhs.js_object_ref__)
 		, js_context__(rhs.js_context__) {
-		JSValueProtect(static_cast<JSContextRef>(js_context__), js_object_ref__);
+		JSValue::Protect(static_cast<JSContextRef>(js_context__), js_object_ref__);
 	}
 
 	JSObject& JSObject::operator=(JSObject rhs) {
-		JSValueProtect(static_cast<JSContextRef>(js_context__), js_object_ref__);
+		JSValue::Protect(static_cast<JSContextRef>(js_context__), js_object_ref__);
 		swap(rhs);
 		return *this;
 	}
@@ -234,7 +234,7 @@ namespace HAL {
 	JSObject::JSObject(const JSContext& js_context, JSObjectRef js_object_ref)
 		: js_context__(js_context)
 		, js_object_ref__(js_object_ref) {
-		JSValueProtect(static_cast<JSContextRef>(js_context__), js_object_ref__);
+		JSValue::Protect(static_cast<JSContextRef>(js_context__), js_object_ref__);
 	}
 
 	JSObject::operator JSValue() const {

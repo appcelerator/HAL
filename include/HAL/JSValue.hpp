@@ -250,6 +250,9 @@ namespace HAL {
 			return js_value_ref__;
 		}
 
+		static void Protect(JSContextRef js_context_ref, JSValueRef js_value_ref);
+		static void Unprotect(JSContextRef js_context_ref, JSValueRef js_value_ref);
+
 	protected:
 
 		// A JSContext can create a JSValue.
@@ -271,6 +274,8 @@ namespace HAL {
 		// need to be exported from a DLL.
 #pragma warning(push)
 #pragma warning(disable: 4251)
+		static std::unordered_map<std::intptr_t, std::size_t> js_value_retain_count_map__;
+
 		JSValueRef js_value_ref__{ nullptr };
 		JSContext js_context__{ nullptr };
 #pragma warning(pop)

@@ -13,6 +13,33 @@
 
 namespace HAL {
 
+	std::unordered_map<std::intptr_t, std::size_t> JSValue::js_value_retain_count_map__;
+
+	void JSValue::Protect(JSContextRef js_context_ref, JSValueRef js_value_ref) {
+		const auto ptr = reinterpret_cast<std::intptr_t>(js_value_ref);
+		const auto iter = js_value_retain_count_map__.find(ptr);
+		if (iter == js_value_retain_count_map__.end()) {
+			JSValueProtect(js_context_ref, js_value_ref);
+			js_value_retain_count_map__.emplace(ptr, 1);
+		} else {
+			js_value_retain_count_map__[ptr] = ++iter->second;
+		}
+	}
+
+	void JSValue::Unprotect(JSContextRef js_context_ref, JSValueRef js_value_ref) {
+		const auto ptr = reinterpret_cast<std::intptr_t>(js_value_ref);
+		const auto iter = js_value_retain_count_map__.find(ptr);
+		if (iter != js_value_retain_count_map__.end()) {
+			const auto count = --iter->second;
+			if (count == 0) {
+				JSValueUnprotect(js_context_ref, js_value_ref);
+				js_value_retain_count_map__.erase(ptr);
+			} else {
+				js_value_retain_count_map__[ptr] = count;
+			}
+		}
+	}
+
 	JSString JSValue::ToJSONString(unsigned indent) const {
 		JSValueRef exception{ nullptr };
 		JSStringRef js_string_ref = JSValueCreateJSONString(static_cast<JSContextRef>(js_context__), js_value_ref__, indent, &exception);
@@ -165,24 +192,24 @@ namespace HAL {
 		return result;
 	}
 	JSValue::~JSValue() HAL_NOEXCEPT {
-		JSValueUnprotect(static_cast<JSContextRef>(js_context__), js_value_ref__);
+		Unprotect(static_cast<JSContextRef>(js_context__), js_value_ref__);
 	}
 
 	JSValue::JSValue(const JSValue& rhs) HAL_NOEXCEPT
 		: js_context__(rhs.js_context__)
 		, js_value_ref__(rhs.js_value_ref__) {
-		JSValueProtect(static_cast<JSContextRef>(js_context__), js_value_ref__);
+		Protect(static_cast<JSContextRef>(js_context__), js_value_ref__);
 	}
 
 	JSValue::JSValue(JSValue&& rhs) HAL_NOEXCEPT
 		: js_context__(rhs.js_context__)
 		, js_value_ref__(rhs.js_value_ref__) {
-		JSValueProtect(static_cast<JSContextRef>(js_context__), js_value_ref__);
+		Protect(static_cast<JSContextRef>(js_context__), js_value_ref__);
 	}
 
 	JSValue& JSValue::operator=(JSValue rhs) {
 		swap(rhs);
-		JSValueProtect(static_cast<JSContextRef>(js_context__), js_value_ref__);
+		Protect(static_cast<JSContextRef>(js_context__), js_value_ref__);
 		return *this;
 	}
 
@@ -206,14 +233,14 @@ namespace HAL {
 		} else {
 			js_value_ref__ = JSValueMakeString(static_cast<JSContextRef>(js_context__), static_cast<JSStringRef>(js_string));
 		}
-		JSValueProtect(static_cast<JSContextRef>(js_context__), js_value_ref__);
+		Protect(static_cast<JSContextRef>(js_context__), js_value_ref__);
 	}
 
-	// For interoperability with the JSRT API.
+	// For interoperability with the JavaScriptCore API.
 	JSValue::JSValue(JSContext js_context, JSValueRef js_value_ref) HAL_NOEXCEPT
 		: js_context__(js_context)
 		, js_value_ref__(js_value_ref) {
-		JSValueProtect(static_cast<JSContextRef>(js_context__), js_value_ref__);
+		Protect(static_cast<JSContextRef>(js_context__), js_value_ref__);
 	}
 
 	bool operator==(const JSValue& lhs, const JSValue& rhs) HAL_NOEXCEPT {
