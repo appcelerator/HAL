@@ -12,6 +12,7 @@
 #include "HAL/JSString.hpp"
 #include <codecvt>
 #include <algorithm>
+#include <iterator>
 
 namespace HAL {
 	namespace detail {
