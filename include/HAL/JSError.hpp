@@ -46,6 +46,8 @@ namespace HAL {
 
 		 JSError(JSContext js_context, const std::vector<JSValue>& arguments = {});
 		 JSError(JSContext js_context, JSObjectRef js_object_ref);
+		 JSError(JSContext js_context, const std::string& message);
+		 JSError(JSContext js_context, const detail::js_runtime_error&);
 
 		 static JSObjectRef MakeError(const JSContext& js_context, const std::vector<JSValue>& arguments);
 	};

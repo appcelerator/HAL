@@ -136,6 +136,14 @@ namespace HAL {
 		return JSError(GetGlobalContext(), arguments);
 	}
 
+	JSError JSContext::CreateError(const std::string& message) const HAL_NOEXCEPT {
+		return JSError(GetGlobalContext(), message);
+	}
+
+	JSError JSContext::CreateError(const detail::js_runtime_error& e) const HAL_NOEXCEPT {
+		return JSError(GetGlobalContext(), e);
+	}
+
 	JSValue JSContext::JSEvaluateScript(const std::string& content, const std::string& source_url) const {
 		return JSEvaluateScript(content, get_global_object(), source_url);
 	}

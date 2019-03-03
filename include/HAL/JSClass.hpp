@@ -106,6 +106,9 @@ namespace HAL {
 		static bool CallHasPropertyFunction(JSContextRef ctx, JSObjectRef thisObject, JSStringRef property_name);
 		static JSValueRef CallGetPropertyFunction(JSContextRef ctx, JSObjectRef thisObject, JSStringRef property_name, JSValueRef* exception);
 		static bool CallSetPropertyFunction(JSContextRef ctx, JSObjectRef thisObject, JSStringRef property_name, JSValueRef value, JSValueRef* exception);
+
+		static std::string GetComponentName(const std::string& function_name);
+
 	private:
 		// Prevent heap based objects.
 		void* operator new(std::size_t) = delete;   // #1: To prevent allocation of scalar objects
@@ -224,7 +227,6 @@ namespace HAL {
 		export_object_ptr->initialize(js_object);
 		export_object_ptr->postInitialize(js_object);
 		assert(result);
-		// TODO try-catch
 	}
 
 	template<typename T>
@@ -234,25 +236,30 @@ namespace HAL {
 			delete export_object_ptr;
 			JSObjectSetPrivate(object, nullptr);
 		}
-		// TODO try-catch
-		// TODO assert
 	}
 
 	template<typename T>
 	JSObjectRef JSExportClass<T>::CallAsConstructorFunction(JSContextRef local_context, JSObjectRef constructor, size_t argumentCount, const JSValueRef arguments[], JSValueRef *exception) {
 		const auto js_context = JSContext(local_context);
-		auto js_constructor = JSObject(js_context, constructor);
+		try {
+			auto js_constructor = JSObject(js_context, constructor);
 
-		auto new_object = js_context.CreateObject(JSExport<T>::Class());
-		new_object.SetProperty("constructor", js_constructor);
+			auto new_object = js_context.CreateObject(JSExport<T>::Class());
+			new_object.SetProperty("constructor", js_constructor);
 
-		const auto export_object_ptr = static_cast<T*>(new_object.GetPrivate());
-		const auto js_arguments = detail::to_vector(js_context, argumentCount, arguments);
-		export_object_ptr->postCallAsConstructor(js_context, js_arguments);
+			const auto export_object_ptr = static_cast<T*>(new_object.GetPrivate());
+			const auto js_arguments = detail::to_vector(js_context, argumentCount, arguments);
+			export_object_ptr->postCallAsConstructor(js_context, js_arguments);
 
-		// TODO try-catch
-		// TODO assert
-		return static_cast<JSObjectRef>(new_object);
+			return static_cast<JSObjectRef>(new_object);
+		} catch (const detail::js_runtime_error& e) {
+			*exception = static_cast<JSValueRef>(js_context.CreateError(e));
+		} catch (const std::exception& e) {
+			*exception = static_cast<JSValueRef>(js_context.CreateError(e.what()));
+		} catch (...) {
+			*exception = static_cast<JSValueRef>(js_context.CreateError("Unknown exception"));
+		}
+		return nullptr;
 	}
 
 
@@ -260,32 +267,40 @@ namespace HAL {
 	JSValueRef JSExportClass<T>::CallGetterFunction(JSContextRef local_context, JSObjectRef thisObject, JSStringRef property_name_ref, JSValueRef* exception) {
 		const auto property_name = static_cast<std::string>(JSString(property_name_ref));
 		const auto js_context = JSContext(local_context);
-		const auto js_object = JSObject(js_context, thisObject);
-		const auto export_object_ptr = static_cast<T*>(js_object.GetPrivate());
 
-		if (export_object_ptr) {
+		try {
+			const auto js_object = JSObject(js_context, thisObject);
+			const auto export_object_ptr = static_cast<T*>(js_object.GetPrivate());
 
-			// Check constant cache
-			const auto constant_position = name_to_constant_map__.find(property_name);
-			const auto constant_found = constant_position != name_to_constant_map__.end();
+			if (export_object_ptr) {
+				// Check constant cache
+				const auto constant_position = name_to_constant_map__.find(property_name);
+				const auto constant_found = constant_position != name_to_constant_map__.end();
 
-			if (constant_found && constant_position->second != nullptr) {
-				return constant_position->second;
-			}
-
-			const auto position = name_to_getter_map__.find(property_name);
-			const auto found = position != name_to_getter_map__.end();
-			if (found) {
-				const auto value_ref = static_cast<JSValueRef>(position->second(*export_object_ptr));
-				if (constant_found) {
-					name_to_constant_map__[property_name] = value_ref;
+				if (constant_found && constant_position->second != nullptr) {
+					return constant_position->second;
 				}
-				return value_ref;
+
+				const auto position = name_to_getter_map__.find(property_name);
+				const auto found = position != name_to_getter_map__.end();
+				if (found) {
+					const auto value_ref = static_cast<JSValueRef>(position->second(*export_object_ptr));
+					if (constant_found) {
+						name_to_constant_map__[property_name] = value_ref;
+					}
+					return value_ref;
+				} else {
+					*exception = static_cast<JSValueRef>(js_context.CreateError("Logical error while calling getter for " + property_name));
+				}
 			}
+		} catch (const detail::js_runtime_error& e) {
+			*exception = static_cast<JSValueRef>(js_context.CreateError(e));
+		} catch (const std::exception& e) {
+			*exception = static_cast<JSValueRef>(js_context.CreateError(e.what()));
+		} catch (...) {
+			*exception = static_cast<JSValueRef>(js_context.CreateError("Error while calling getter for " + property_name));
 		}
 
-		// TODO try-catch
-		// TODO assert
 		return JSValueMakeUndefined(local_context);
 	}
 
@@ -293,20 +308,29 @@ namespace HAL {
 	bool JSExportClass<T>::CallSetterFunction(JSContextRef local_context, JSObjectRef thisObject, JSStringRef property_name_ref, JSValueRef value, JSValueRef* exception) {
 		const auto property_name = static_cast<std::string>(JSString(property_name_ref));
 		const auto js_context = JSContext(local_context);
-		const auto js_object = JSObject(js_context, thisObject);
 
-		const auto export_object_ptr = static_cast<T*>(js_object.GetPrivate());
+		try {
+			const auto js_object = JSObject(js_context, thisObject);
 
-		if (export_object_ptr) {
-			const auto position = name_to_setter_map__.find(property_name);
-			const auto found = position != name_to_setter_map__.end();
-			if (found) {
-				return position->second(*export_object_ptr, JSValue(js_context, value));
+			const auto export_object_ptr = static_cast<T*>(js_object.GetPrivate());
+
+			if (export_object_ptr) {
+				const auto position = name_to_setter_map__.find(property_name);
+				const auto found = position != name_to_setter_map__.end();
+				if (found) {
+					return position->second(*export_object_ptr, JSValue(js_context, value));
+				}
+			} else {
+				*exception = static_cast<JSValueRef>(js_context.CreateError("Logical error while calling setter for " + property_name));
 			}
+		} catch (const detail::js_runtime_error& e) {
+			*exception = static_cast<JSValueRef>(js_context.CreateError(e));
+		} catch (const std::exception& e) {
+			*exception = static_cast<JSValueRef>(js_context.CreateError(e.what()));
+		} catch (...) {
+			*exception = static_cast<JSValueRef>(js_context.CreateError("Error while calling setter for " + property_name));
 		}
 
-		// TODO try-catch
-		// TODO assert
 		return false;
 	}
 
@@ -314,61 +338,112 @@ namespace HAL {
 	JSValueRef JSExportClass<T>::CallNamedFunction(JSContextRef local_context, JSObjectRef function, JSObjectRef thisObject, size_t argumentCount, const JSValueRef arguments[], JSValueRef *exception)
 	{
 		const auto js_context = JSContext::GetGlobalContext();
-		auto js_object = JSObject(js_context, thisObject);
 		const auto js_function = JSObject(js_context, function);
 		const auto js_function_name = js_function.GetProperty("name");
 		assert(js_function_name.IsString());
 		const auto function_name = static_cast<std::string>(js_function_name);
 
-		const auto export_object_ptr = static_cast<T*>(js_object.GetPrivate());
+		const auto component_name = GetComponentName(function_name);
+		JSError::NativeStack__.push_back(component_name);
 
-		if (export_object_ptr) {
-			const auto position = name_to_function_map__.find(function_name);
-			const auto found = position != name_to_function_map__.end();
-			if (found) {
-				const auto js_arguments = detail::to_vector(js_context, argumentCount, arguments);
-				return static_cast<JSValueRef>(position->second(*export_object_ptr, js_arguments, js_object));
-			}
+		if (JSError::NativeStack__.size() > 10) {
+			JSError::NativeStack__.pop_front();
 		}
 
-		// TODO try-catch
-		// TODO assert
+		try {
+			auto js_object = JSObject(js_context, thisObject);
+			const auto export_object_ptr = static_cast<T*>(js_object.GetPrivate());
+
+			if (export_object_ptr) {
+				const auto position = name_to_function_map__.find(function_name);
+				const auto found = position != name_to_function_map__.end();
+				if (found) {
+					const auto js_arguments = detail::to_vector(js_context, argumentCount, arguments);
+					const auto result = static_cast<JSValueRef>(position->second(*export_object_ptr, js_arguments, js_object));
+
+					if (!JSError::NativeStack__.empty()) {
+						JSError::NativeStack__.pop_back();
+					}
+
+					return result;
+				}
+			} else {
+				*exception = static_cast<JSValueRef>(js_context.CreateError("Logical error while calling " + function_name));
+			}
+		} catch (const detail::js_runtime_error& e) {
+			*exception = static_cast<JSValueRef>(js_context.CreateError(e));
+		} catch (const std::exception& e) {
+			*exception = static_cast<JSValueRef>(js_context.CreateError(e.what()));
+		} catch (...) {
+			*exception = static_cast<JSValueRef>(js_context.CreateError("Error while calling " + function_name));
+		}
 		return JSValueMakeUndefined(local_context);
 	}
 
 	template<typename T>
 	bool JSExportClass<T>::CallHasPropertyFunction(JSContextRef local_context, JSObjectRef thisObject, JSStringRef property_name_ref) {
-		// TODO
-		const auto property_name = static_cast<std::string>(JSString(property_name_ref));
+		const auto js_property_name = JSString(property_name_ref);
 		const auto js_context = JSContext(local_context);
-		auto js_object = JSObject(js_context, thisObject);
+		const auto js_object = JSObject(js_context, thisObject);
+		const auto export_object_ptr = static_cast<T*>(js_object.GetPrivate());
 
-		// TODO try-catch
-		// TODO assert
+		assert(export_object_ptr);
+		assert(has_property_callback__);
+		if (export_object_ptr && has_property_callback__) {
+			return has_property_callback__(*export_object_ptr, js_property_name);
+		}
 		return false;
 	}
 
 	template<typename T>
 	JSValueRef JSExportClass<T>::CallGetPropertyFunction(JSContextRef local_context, JSObjectRef thisObject, JSStringRef property_name_ref, JSValueRef* exception) {
-		// TODO
-		const auto property_name = static_cast<std::string>(JSString(property_name_ref));
+		const auto js_property_name = JSString(property_name_ref);
 		const auto js_context = JSContext(local_context);
-		auto js_object = JSObject(js_context, thisObject);
 
-		// TODO try-catch
-		// TODO assert
+		try {
+			const auto js_object = JSObject(js_context, thisObject);
+			const auto export_object_ptr = static_cast<T*>(js_object.GetPrivate());
+
+			assert(export_object_ptr);
+			assert(get_property_callback__);
+			if (export_object_ptr && get_property_callback__) {
+				return static_cast<JSValueRef>(get_property_callback__(*export_object_ptr, js_property_name));
+			} else {
+				*exception = static_cast<JSValueRef>(js_context.CreateError("Logical error while getting " + static_cast<std::string>(js_property_name)));
+			}
+		} catch (const detail::js_runtime_error& e) {
+			*exception = static_cast<JSValueRef>(js_context.CreateError(e));
+		} catch (const std::exception& e) {
+			*exception = static_cast<JSValueRef>(js_context.CreateError(e.what()));
+		} catch (...) {
+			*exception = static_cast<JSValueRef>(js_context.CreateError("Error while getting " + static_cast<std::string>(js_property_name)));
+		}
 		return JSValueMakeUndefined(local_context);
 	}
 
 	template<typename T>
 	bool JSExportClass<T>::CallSetPropertyFunction(JSContextRef local_context, JSObjectRef thisObject, JSStringRef property_name_ref, JSValueRef value, JSValueRef* exception) {
-		// TODO
-		const auto property_name = static_cast<std::string>(JSString(property_name_ref));
+		const auto js_property_name = JSString(property_name_ref);
 		const auto js_context = JSContext(local_context);
-		auto js_object = JSObject(js_context, thisObject);
 
-		// TODO try-catch
-		// TODO assert
+		try {
+			const auto js_object = JSObject(js_context, thisObject);
+			const auto export_object_ptr = static_cast<T*>(js_object.GetPrivate());
+
+			assert(export_object_ptr);
+			assert(set_property_callback__);
+			if (export_object_ptr && set_property_callback__) {
+				return set_property_callback__(*export_object_ptr, js_property_name, JSValue(js_context, value));
+			} else {
+				*exception = static_cast<JSValueRef>(js_context.CreateError("Logical error while setting " + static_cast<std::string>(js_property_name)));
+			}
+		} catch (const detail::js_runtime_error& e) {
+			*exception = static_cast<JSValueRef>(js_context.CreateError(e));
+		} catch (const std::exception& e) {
+			*exception = static_cast<JSValueRef>(js_context.CreateError(e.what()));
+		} catch (...) {
+			*exception = static_cast<JSValueRef>(js_context.CreateError("Error while setting " + static_cast<std::string>(js_property_name)));
+		}
 		return false;
 	}
 
@@ -442,7 +517,13 @@ namespace HAL {
 		}
 
 		js_class_ref__ = JSClassCreate(&js_class_definition__);
+	}
 
+	template<typename T>
+	std::string JSExportClass<T>::GetComponentName(const std::string& function_name) {
+		std::ostringstream os;
+		os << "JSExportClass<" << typeid(T).name() << ">::" << function_name;
+		return os.str();
 	}
 } // namespace HAL {
 

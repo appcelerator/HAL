@@ -10,6 +10,7 @@
 #define _HAL_JSCONTEXT_HPP_
 
 #include "HAL/detail/JSBase.hpp"
+#include "HAL/detail/JSUtil.hpp"
 #include "HAL/JSContextGroup.hpp"
 
 #include <vector>
@@ -264,6 +265,8 @@ namespace HAL {
 		 */
 		JSError CreateError() const HAL_NOEXCEPT;
 		JSError CreateError(const std::vector<JSValue>& arguments) const HAL_NOEXCEPT;
+		JSError CreateError(const std::string& message) const HAL_NOEXCEPT;
+		JSError CreateError(const detail::js_runtime_error& e) const HAL_NOEXCEPT;
 
 		/* Script Evaluation */
 

@@ -22,6 +22,19 @@ namespace HAL {
 		: JSObject(js_context, js_object_ref) {
 	}
 
+	JSError::JSError(JSContext js_context, const std::string& message)
+		: JSObject(js_context, MakeError(js_context, { js_context.CreateString(message) })) {
+	}
+
+	JSError::JSError(JSContext js_context, const detail::js_runtime_error& e)
+		: JSObject(js_context, MakeError(js_context, { js_context.CreateString(e.js_message()) })) {
+		SetProperty("name", js_context.CreateString(e.js_name()));
+		SetProperty("fileName", js_context.CreateString(e.js_filename()));
+		SetProperty("stack", js_context.CreateString(e.js_stack()));
+		SetProperty("nativeStack", js_context.CreateString(e.js_nativeStack()));
+		SetProperty("lineNumber", js_context.CreateNumber(e.js_linenumber()));
+	}
+
 	std::string JSError::message() const {
 		if (HasProperty("message")) {
 			return static_cast<std::string>(GetProperty("message"));
