@@ -17,6 +17,8 @@
 
 namespace HAL {
 
+	std::unordered_map<JSObjectRef, std::intptr_t> JSObject::js_object_ref_to_private_data_map__;
+
 	bool JSObject::HasProperty(const std::string& property_name) const HAL_NOEXCEPT {
 		const auto js_property_name = JSString(property_name);
 		return JSObjectHasProperty(static_cast<JSContextRef>(js_context__), js_object_ref__, static_cast<JSStringRef>(js_property_name));
@@ -185,8 +187,49 @@ namespace HAL {
 		return JSObject(js_context__, js_object_ref);
 	}
 
+	void JSObject::RegisterPrivateData(JSObjectRef js_object_ref, void* private_data) {
+		// we won't store nullptr
+		if (private_data == nullptr) {
+			return;
+		}
+		const auto value = reinterpret_cast<std::intptr_t>(private_data);
+
+		const auto position = js_object_ref_to_private_data_map__.find(js_object_ref);
+		const bool found = position != js_object_ref_to_private_data_map__.end();
+
+		if (found) {
+			// private data should not be shared by multiple JSObjectRef
+			assert(position->first == js_object_ref);
+		} else {
+			const auto insert_result = js_object_ref_to_private_data_map__.emplace(js_object_ref, value);
+			const bool inserted = insert_result.second;
+
+			// postcondition
+			assert(inserted);
+		}
+	}
+
+	void JSObject::UnRegisterPrivateData(JSObjectRef js_object_ref) {
+		const auto position = js_object_ref_to_private_data_map__.find(js_object_ref);
+		const bool found = position != js_object_ref_to_private_data_map__.end();
+
+		if (found) {
+			js_object_ref_to_private_data_map__.erase(js_object_ref);
+		}
+	}
+
 	void* JSObject::GetPrivate() const HAL_NOEXCEPT {
-		return JSObjectGetPrivate(js_object_ref__);
+		const auto data = JSObjectGetPrivate(js_object_ref__);
+		if (data) {
+			return data;
+		} else {
+			const auto position = js_object_ref_to_private_data_map__.find(js_object_ref__);
+			const auto found = position != js_object_ref_to_private_data_map__.end();
+			if (found) {
+				return reinterpret_cast<void*>(position->second);
+			}
+		}
+		return nullptr;
 	}
 
 	bool JSObject::SetPrivate(void* data) const HAL_NOEXCEPT {

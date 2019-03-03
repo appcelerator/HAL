@@ -306,6 +306,10 @@ namespace HAL {
 		template<typename T>
 		std::shared_ptr<T> GetPrivate() const HAL_NOEXCEPT;
 
+		// In case JS object is not able to hold private date like String
+		static void UnRegisterPrivateData(JSObjectRef js_object_ref);
+		static void RegisterPrivateData(JSObjectRef js_object_ref, void* private_data);
+
 		template<typename T>
 		friend class JSExportClass;
 
@@ -385,6 +389,10 @@ namespace HAL {
 #pragma warning(disable: 4251)
 		JSObjectRef js_object_ref__{ nullptr };
 		JSContext js_context__{ nullptr };
+
+		// In case JS object is not able to hold private date like String
+		static std::unordered_map<JSObjectRef, std::intptr_t> js_object_ref_to_private_data_map__;
+
 #pragma warning(pop)
 
 	};
