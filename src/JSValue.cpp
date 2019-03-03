@@ -47,7 +47,7 @@ namespace HAL {
 			if (js_string_ref) {
 				JSStringRelease(js_string_ref);
 			}
-			detail::ThrowRuntimeError("Unable to convert JSValue to JSONString");
+			detail::ThrowRuntimeError(JSValue(js_context__, exception));
 			return JSString();
 		}
 
@@ -67,7 +67,7 @@ namespace HAL {
 			if (js_string_ref) {
 				JSStringRelease(js_string_ref);
 			}
-			detail::ThrowRuntimeError("Unable to convert JSValue to JSONString");
+			detail::ThrowRuntimeError(JSValue(js_context__, exception));
 			return JSString();
 		}
 
@@ -87,7 +87,7 @@ namespace HAL {
 			if (js_string_ref) {
 				JSStringRelease(js_string_ref);
 			}
-			detail::ThrowRuntimeError("Unable to convert JSValue to JSONString");
+			detail::ThrowRuntimeError(JSValue(js_context__, exception));
 			return "";
 		}
 
@@ -132,7 +132,7 @@ namespace HAL {
 		const double result = JSValueToNumber(static_cast<JSContextRef>(js_context__), js_value_ref__, &exception);
 
 		if (exception) {
-			detail::ThrowRuntimeError("Unable to convert JSValue to double");
+			detail::ThrowRuntimeError(JSValue(js_context__, exception));
 		}
 
 		return result;
@@ -152,7 +152,7 @@ namespace HAL {
 			if (js_object_ref) {
 				JSValueUnprotect(js_context_ref__, js_object_ref);
 			}
-			detail::ThrowRuntimeError("Unable to convert JSValue to double");
+			detail::ThrowRuntimeError(JSValue(js_context__, exception));
 		}
 
 		return JSObject(js_context__, js_object_ref);
@@ -186,7 +186,7 @@ namespace HAL {
 		JSValueRef exception{ nullptr };
 		const bool result = JSValueIsInstanceOfConstructor(static_cast<JSContextRef>(js_context__), js_value_ref__, static_cast<JSObjectRef>(constructor), &exception);
 		if (exception) {
-			detail::ThrowRuntimeError("Unable to call IsInstanceOfConstructor");
+			detail::ThrowRuntimeError(JSValue(js_context__, exception));
 		}
 
 		return result;
@@ -228,7 +228,7 @@ namespace HAL {
 			js_value_ref__ = JSValueMakeFromJSONString(static_cast<JSContextRef>(js_context), static_cast<JSStringRef>(js_string));
 			if (!js_value_ref__) {
 				const std::string message = "Input is not a valid JSON string: " + to_string(js_string);
-				detail::ThrowRuntimeError(message);
+				detail::ThrowRuntimeError("JSValue", message);
 			}
 		} else {
 			js_value_ref__ = JSValueMakeString(static_cast<JSContextRef>(js_context__), static_cast<JSStringRef>(js_string));

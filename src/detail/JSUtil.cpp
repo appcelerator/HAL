@@ -10,6 +10,7 @@
 #include "HAL/JSPropertyAttribute.hpp"
 #include "HAL/JSValue.hpp"
 #include "HAL/JSString.hpp"
+#include "HAL/JSError.hpp"
 #include <codecvt>
 #include <algorithm>
 #include <iterator>
@@ -17,12 +18,30 @@
 namespace HAL {
 	namespace detail {
 
+		js_runtime_error::js_runtime_error(const JSError& js_error) : std::runtime_error(js_error.message()) {
+			js_name__        = js_error.name();
+			js_filename__    = js_error.filename();
+			js_linenumber__  = js_error.linenumber();
+			js_stack__       = js_error.stack();
+			js_nativeStack__ = js_error.nativeStack();
+			js_message__     = js_error.message();
+		}
+
 		void ThrowRuntimeError(const std::string& internal_component_name, const std::string& message) {
 			throw std::runtime_error(message);
 		}
 
-		void ThrowRuntimeError(const std::string& message) {
-			throw std::runtime_error(message);
+		void ThrowRuntimeError(const JSValue& exception) {
+			if (exception.IsObject()) {
+				const auto js_exception = static_cast<JSObject>(exception);
+				if (js_exception.IsError()) {
+					const auto js_context = js_exception.get_context();
+					auto js_error = static_cast<JSError>(js_exception);
+
+					throw js_runtime_error(js_error);
+				}
+			}
+			throw std::runtime_error(static_cast<std::string>(exception));
 		}
 
 		// The bitwise_cast and to_int32_t code was copied from

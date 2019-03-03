@@ -104,7 +104,7 @@ namespace HAL {
 			if (js_object_ref) {
 				JSValueUnprotect(js_context_ref, js_object_ref);
 			}
-			detail::ThrowRuntimeError("Unable to create JSError");
+			detail::ThrowRuntimeError(JSValue(js_context, exception));
 		}
 
 		return js_object_ref;

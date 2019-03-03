@@ -35,17 +35,17 @@ namespace HAL {
 		JSObjectRef js_object_ref = nullptr;
 		if (!arguments.empty()) {
 			std::vector<JSValueRef> arguments_array = detail::to_vector(arguments);
-			js_object_ref = JSObjectMakeDate(js_context_ref__, arguments_array.size(), &arguments_array[0], &exception);
+			js_object_ref = JSObjectMakeDate(js_global_context_ref__, arguments_array.size(), &arguments_array[0], &exception);
 		} else {
-			js_object_ref = JSObjectMakeDate(js_context_ref__, 0, nullptr, &exception);
+			js_object_ref = JSObjectMakeDate(js_global_context_ref__, 0, nullptr, &exception);
 		}
 		if (exception) {
 			if (js_object_ref) {
-				JSValueUnprotect(js_context_ref__, js_object_ref);
+				JSValueUnprotect(js_global_context_ref__, js_object_ref);
 			}
-			detail::ThrowRuntimeError("Unable to create Date object");
+			detail::ThrowRuntimeError(JSValue(JSContext(js_global_context_ref__), exception));
 		}
-		return JSObject(JSContext(js_context_ref__), js_object_ref);
+		return JSObject(JSContext(js_global_context_ref__), js_object_ref);
 	}
 
 	JSValue JSContext::CreateValueFromJSON(const JSString& js_string) const {
@@ -77,27 +77,27 @@ namespace HAL {
 	}
 
 	JSValue JSContext::CreateUndefined() const HAL_NOEXCEPT {
-		return JSValue(GetGlobalContext(), JSValueMakeUndefined(js_context_ref__));
+		return JSValue(GetGlobalContext(), JSValueMakeUndefined(js_global_context_ref__));
 	}
 
 	JSValue JSContext::CreateNull() const HAL_NOEXCEPT {
-		return JSValue(GetGlobalContext(), JSValueMakeNull(js_context_ref__));
+		return JSValue(GetGlobalContext(), JSValueMakeNull(js_global_context_ref__));
 	}
 
 	JSValue JSContext::CreateBoolean(bool boolean) const HAL_NOEXCEPT {
-		return JSValue(GetGlobalContext(), JSValueMakeBoolean(js_context_ref__, boolean));
+		return JSValue(GetGlobalContext(), JSValueMakeBoolean(js_global_context_ref__, boolean));
 	}
 
 	JSValue JSContext::CreateNumber(double number) const HAL_NOEXCEPT {
-		return JSValue(GetGlobalContext(), JSValueMakeNumber(js_context_ref__, number));
+		return JSValue(GetGlobalContext(), JSValueMakeNumber(js_global_context_ref__, number));
 	}
 
 	JSValue JSContext::CreateNumber(int32_t number) const HAL_NOEXCEPT {
-		return JSValue(GetGlobalContext(), JSValueMakeNumber(js_context_ref__, static_cast<double>(number)));
+		return JSValue(GetGlobalContext(), JSValueMakeNumber(js_global_context_ref__, static_cast<double>(number)));
 	}
 
 	JSValue JSContext::CreateNumber(uint32_t number) const HAL_NOEXCEPT {
-		return JSValue(GetGlobalContext(), JSValueMakeNumber(js_context_ref__, static_cast<double>(number)));
+		return JSValue(GetGlobalContext(), JSValueMakeNumber(js_global_context_ref__, static_cast<double>(number)));
 	}
 
 	JSObject JSContext::CreateObject() const HAL_NOEXCEPT {
@@ -160,7 +160,7 @@ namespace HAL {
 			if (js_value_ref) {
 				JSValueUnprotect(js_global_context_ref__, js_value_ref);
 			}
-			detail::ThrowRuntimeError(static_cast<std::string>(JSValue(JSContext(js_global_context_ref__), exception)));
+			detail::ThrowRuntimeError(JSValue(JSContext(js_global_context_ref__), exception));
 		}
 
 		return JSValue(GetGlobalContext(), js_value_ref);
@@ -174,7 +174,7 @@ namespace HAL {
 		bool result = ::JSCheckScriptSyntax(js_global_context_ref__, static_cast<JSStringRef>(js_content), source_url_ref, 0, &exception);
 
 		if (exception) {
-			detail::ThrowRuntimeError(static_cast<std::string>(JSValue(JSContext(js_global_context_ref__), exception)));
+			detail::ThrowRuntimeError(JSValue(JSContext(js_global_context_ref__), exception));
 		}
 
 		return result;
@@ -190,14 +190,23 @@ namespace HAL {
 
 	JSContext::JSContext(const JSContext& rhs) HAL_NOEXCEPT
 		: js_context_ref__(rhs.js_context_ref__) {
+		if (js_global_context_ref__ == nullptr) {
+			js_global_context_ref__ = JSContextGetGlobalContext(js_context_ref__);
+		}
 	}
 
 	JSContext::JSContext(JSContext&& rhs) HAL_NOEXCEPT
 		: js_context_ref__(rhs.js_context_ref__) {
+		if (js_global_context_ref__ == nullptr) {
+			js_global_context_ref__ = JSContextGetGlobalContext(js_context_ref__);
+		}
 	}
 
 	JSContext& JSContext::operator=(JSContext rhs) HAL_NOEXCEPT {
 		std::swap(js_context_ref__, rhs.js_context_ref__);
+		if (js_global_context_ref__ == nullptr) {
+			js_global_context_ref__ = JSContextGetGlobalContext(js_context_ref__);
+		}
 		return *this;
 	}
 

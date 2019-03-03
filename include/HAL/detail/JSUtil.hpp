@@ -19,12 +19,14 @@ namespace HAL {
 	class JSContext;
 	class JSValue;
 	class JSString;
+	class JSError;
 
 	namespace detail {
 
 		class js_runtime_error : public std::runtime_error {
 		public:
 			js_runtime_error() HAL_NOEXCEPT = default;
+			js_runtime_error(const JSError& js_error);
 			virtual ~js_runtime_error() = default;
 
 			std::string js_name() const {
@@ -54,7 +56,7 @@ namespace HAL {
 			std::string js_nativeStack__;
 		};
 
-		HAL_EXPORT void ThrowRuntimeError(const std::string& message);
+		HAL_EXPORT void ThrowRuntimeError(const JSValue& exception);
 		HAL_EXPORT void ThrowRuntimeError(const std::string& internal_component_name, const std::string& message);
 		HAL_EXPORT std::vector<JSValueRef>  to_vector(const std::vector<JSValue>&);
 		HAL_EXPORT std::vector<JSStringRef> to_vector(const std::vector<JSString>&);

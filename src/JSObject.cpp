@@ -69,7 +69,7 @@ namespace HAL {
 			static_cast<JSValueRef>(property_value), 
 			detail::ToJSPropertyAttributes(attributes), &exception);
 		if (exception) {
-			detail::ThrowRuntimeError("Unable to set property");
+			detail::ThrowRuntimeError(JSValue(js_context__, exception));
 		}
 	}
 
@@ -77,7 +77,7 @@ namespace HAL {
 		JSValueRef exception{ nullptr };
 		JSObjectSetPropertyAtIndex(static_cast<JSContextRef>(js_context__), js_object_ref__, property_index, static_cast<JSValueRef>(property_value), &exception);
 		if (exception) {
-			detail::ThrowRuntimeError("Unable to set property at index ", std::to_string(property_index));
+			detail::ThrowRuntimeError(JSValue(js_context__, exception));
 		}
 	}
 
@@ -86,7 +86,7 @@ namespace HAL {
 		const auto js_property_name = JSString(property_name);
 		const bool result = JSObjectDeleteProperty(static_cast<JSContextRef>(js_context__), js_object_ref__, static_cast<JSStringRef>(js_property_name), &exception);
 		if (exception) {
-			detail::ThrowRuntimeError("Unable to delete property ", property_name);
+			detail::ThrowRuntimeError(JSValue(js_context__, exception));
 		}
 
 		return result;
@@ -177,7 +177,7 @@ namespace HAL {
 			if (js_object_ref) {
 				JSValueUnprotect(js_context_ref, js_object_ref);
 			}
-			detail::ThrowRuntimeError("Unable to call as constructor");
+			detail::ThrowRuntimeError(JSValue(js_context__, exception));
 		}
 
 		// postcondition
@@ -251,7 +251,7 @@ namespace HAL {
 
 	JSValue JSObject::CallAsFunction(const std::vector<JSValue>&  arguments, JSObject this_object) {
 		if (!IsFunction()) {
-			detail::ThrowRuntimeError("This JavaScript object is not a function.");
+			detail::ThrowRuntimeError("JSObject::CallAsFunction", "This JavaScript object is not a function.");
 		}
 
 		const auto js_context_ref = static_cast<JSContextRef>(js_context__);
@@ -268,7 +268,7 @@ namespace HAL {
 			if (js_value_ref) {
 				JSValueUnprotect(js_context_ref, js_value_ref);
 			}
-			detail::ThrowRuntimeError("Unable to call as function");
+			detail::ThrowRuntimeError(JSValue(js_context__, exception));
 		}
 
 		assert(js_value_ref);

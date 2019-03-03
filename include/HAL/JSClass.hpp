@@ -257,7 +257,7 @@ namespace HAL {
 		} catch (const std::exception& e) {
 			*exception = static_cast<JSValueRef>(js_context.CreateError(e.what()));
 		} catch (...) {
-			*exception = static_cast<JSValueRef>(js_context.CreateError("Unknown exception"));
+			*exception = static_cast<JSValueRef>(js_context.CreateError("Unexpected exception"));
 		}
 		return nullptr;
 	}
