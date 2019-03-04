@@ -176,13 +176,17 @@ namespace HAL {
 			const auto getter_position = name_to_getter_map__.find(name);
 			const auto getter_found = getter_position != name_to_getter_map__.end();
 			assert(!getter_found);
+			assert(getter);
 			name_to_getter_map__.emplace(name, getter);
 		}
 		{
-			const auto setter_position = name_to_setter_map__.find(name);
-			const auto setter_found = setter_position != name_to_setter_map__.end();
-			assert(!setter_found);
-			name_to_setter_map__.emplace(name, setter);
+			// nullptr for setter means it's a read-only property
+			if (setter) {
+				const auto setter_position = name_to_setter_map__.find(name);
+				const auto setter_found = setter_position != name_to_setter_map__.end();
+				assert(!setter_found);
+				name_to_setter_map__.emplace(name, setter);
+			}
 		}
 
 		if (!enumerable) {
