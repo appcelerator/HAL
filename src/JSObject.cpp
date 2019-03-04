@@ -296,7 +296,8 @@ namespace HAL {
 			detail::ThrowRuntimeError("JSObject::CallAsFunction", "This JavaScript object is not a function.");
 		}
 
-		const auto js_context_ref = static_cast<JSContextRef>(js_context__);
+		const auto js_context = JSContext::GetGlobalContext();
+		const auto js_context_ref = static_cast<JSContextRef>(js_context);
 		JSValueRef exception{ nullptr };
 		JSValueRef js_value_ref{ nullptr };
 		if (!arguments.empty()) {
@@ -310,11 +311,11 @@ namespace HAL {
 			if (js_value_ref) {
 				JSValueUnprotect(js_context_ref, js_value_ref);
 			}
-			detail::ThrowRuntimeError(JSValue(js_context__, exception));
+			detail::ThrowRuntimeError(JSValue(js_context, exception));
 		}
 
 		assert(js_value_ref);
-		return JSValue(js_context__, js_value_ref);
+		return JSValue(js_context, js_value_ref);
 	}
 
 } // namespace HAL {

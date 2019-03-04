@@ -240,7 +240,7 @@ namespace HAL {
 
 	template<typename T>
 	JSObjectRef JSExportClass<T>::CallAsConstructorFunction(JSContextRef local_context, JSObjectRef constructor, size_t argumentCount, const JSValueRef arguments[], JSValueRef *exception) {
-		const auto js_context = JSContext(local_context);
+		const auto js_context = JSContext::GetGlobalContext();
 		try {
 			auto js_constructor = JSObject(js_context, constructor);
 
@@ -266,7 +266,7 @@ namespace HAL {
 	template<typename T>
 	JSValueRef JSExportClass<T>::CallGetterFunction(JSContextRef local_context, JSObjectRef thisObject, JSStringRef property_name_ref, JSValueRef* exception) {
 		const auto property_name = static_cast<std::string>(JSString(property_name_ref));
-		const auto js_context = JSContext(local_context);
+		const auto js_context = JSContext::GetGlobalContext();
 
 		try {
 			const auto js_object = JSObject(js_context, thisObject);
@@ -307,7 +307,7 @@ namespace HAL {
 	template<typename T>
 	bool JSExportClass<T>::CallSetterFunction(JSContextRef local_context, JSObjectRef thisObject, JSStringRef property_name_ref, JSValueRef value, JSValueRef* exception) {
 		const auto property_name = static_cast<std::string>(JSString(property_name_ref));
-		const auto js_context = JSContext(local_context);
+		const auto js_context = JSContext::GetGlobalContext();
 
 		try {
 			const auto js_object = JSObject(js_context, thisObject);
@@ -378,7 +378,7 @@ namespace HAL {
 	template<typename T>
 	bool JSExportClass<T>::CallHasPropertyFunction(JSContextRef local_context, JSObjectRef thisObject, JSStringRef property_name_ref) {
 		const auto js_property_name = JSString(property_name_ref);
-		const auto js_context = JSContext(local_context);
+		const auto js_context = JSContext::GetGlobalContext();
 		const auto js_object = JSObject(js_context, thisObject);
 		const auto export_object_ptr = static_cast<T*>(js_object.GetPrivate());
 
@@ -393,7 +393,7 @@ namespace HAL {
 	template<typename T>
 	JSValueRef JSExportClass<T>::CallGetPropertyFunction(JSContextRef local_context, JSObjectRef thisObject, JSStringRef property_name_ref, JSValueRef* exception) {
 		const auto js_property_name = JSString(property_name_ref);
-		const auto js_context = JSContext(local_context);
+		const auto js_context = JSContext::GetGlobalContext();
 
 		try {
 			const auto js_object = JSObject(js_context, thisObject);
@@ -419,7 +419,7 @@ namespace HAL {
 	template<typename T>
 	bool JSExportClass<T>::CallSetPropertyFunction(JSContextRef local_context, JSObjectRef thisObject, JSStringRef property_name_ref, JSValueRef value, JSValueRef* exception) {
 		const auto js_property_name = JSString(property_name_ref);
-		const auto js_context = JSContext(local_context);
+		const auto js_context = JSContext::GetGlobalContext();
 
 		try {
 			const auto js_object = JSObject(js_context, thisObject);
