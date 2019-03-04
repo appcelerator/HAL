@@ -30,7 +30,6 @@ namespace HAL {
 	}
 
 	JSValue JSObject::GetProperty(const JSString property_name) const {
-
 		JSValueRef exception{ nullptr };
 		const auto js_context_ref = static_cast<JSContextRef>(js_context__);
 		const auto js_value_ref = JSObjectGetProperty(js_context_ref, js_object_ref__, static_cast<JSStringRef>(property_name), &exception);

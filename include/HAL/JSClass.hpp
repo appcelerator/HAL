@@ -335,8 +335,7 @@ namespace HAL {
 	}
 
 	template<typename T>
-	JSValueRef JSExportClass<T>::CallNamedFunction(JSContextRef local_context, JSObjectRef function, JSObjectRef thisObject, size_t argumentCount, const JSValueRef arguments[], JSValueRef *exception)
-	{
+	JSValueRef JSExportClass<T>::CallNamedFunction(JSContextRef local_context, JSObjectRef function, JSObjectRef thisObject, size_t argumentCount, const JSValueRef arguments[], JSValueRef *exception) {
 		const auto js_context = JSContext::GetGlobalContext();
 		const auto js_function = JSObject(js_context, function);
 		const auto js_function_name = js_function.GetProperty("name");
@@ -353,20 +352,16 @@ namespace HAL {
 		try {
 			auto js_object = JSObject(js_context, thisObject);
 			const auto export_object_ptr = static_cast<T*>(js_object.GetPrivate());
-
-			if (export_object_ptr) {
-				const auto position = name_to_function_map__.find(function_name);
-				const auto found = position != name_to_function_map__.end();
-				if (found) {
-					const auto js_arguments = detail::to_vector(js_context, argumentCount, arguments);
-					const auto result = static_cast<JSValueRef>(position->second(*export_object_ptr, js_arguments, js_object));
-
-					if (!JSError::NativeStack__.empty()) {
-						JSError::NativeStack__.pop_back();
-					}
-
-					return result;
+			const auto position = name_to_function_map__.find(function_name);
+			const auto found = position != name_to_function_map__.end();
+			if (found) {
+				// export_object_ptr goes null when funciton is called as a static function. It is acceptable here.
+				const auto js_arguments = detail::to_vector(js_context, argumentCount, arguments);
+				const auto result = static_cast<JSValueRef>(position->second(*export_object_ptr, js_arguments, js_object));
+				if (!JSError::NativeStack__.empty()) {
+					JSError::NativeStack__.pop_back();
 				}
+				return result;
 			} else {
 				*exception = static_cast<JSValueRef>(js_context.CreateError("Logical error while calling " + function_name));
 			}
