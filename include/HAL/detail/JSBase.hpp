@@ -43,8 +43,6 @@
 #define HAL_NOEXCEPT
 #endif
 
-#define HAL_USE_SINGLE_CONTEXT
-
 #include "HAL_EXPORT.h"
 #include <JavaScriptCore/JavaScript.h>
 

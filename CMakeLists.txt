@@ -3,7 +3,7 @@
 # Copyright (c) 2019 by Axway. All Rights Reserved.
 # Licensed under the terms of the Apache Public License.
 # Please see the LICENSE included with this distribution for details.
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.0.0)
 
 # See https://github.com/pabloariasal/modern-cmake-sample
 # for guidance
@@ -151,7 +151,7 @@ if (WIN32)
   #
   # "warning LNK4099: PDB 'vc120.pdb' was not found with
   # 'JavaScriptCore-Debug.lib(...)' ...".
-  target_link_options(HAL PUBLIC /IGNORE:4099)
+  set_property(TARGET HAL APPEND PROPERTY LINK_FLAGS "/IGNORE:4099")
   
   # Silence this warning when lnking with the JavaScriptCore static
   # library for the i386 emulator:
@@ -214,7 +214,7 @@ if (WIN32)
   #
   # Therefore we disable /OPT:REF and /OPT:ICF for the Debug
   # configuration.
-  target_link_options(HAL PUBLIC $<$<CONFIG:DEBUG>:/OPT:NOREF /OPT:NOICF>)
+  set_property(TARGET HAL APPEND_STRING PROPERTY LINK_FLAGS_DEBUG "/OPT:NOREF /OPT:NOICF")
 endif()
 
 if (HAL_DEFINE_JSCLASSDEFINITIONEMPTY)
