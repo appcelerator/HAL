@@ -16,14 +16,17 @@ namespace HAL {
 
 	JSError::JSError(JSContext js_context, const std::vector<JSValue>& arguments)
 		: JSObject(js_context, MakeError(js_context, arguments)) {
+		SetProperty("nativeStack", js_context.CreateString(JSError::GetNativeStack()));
 	}
 
 	JSError::JSError(JSContext js_context, JSObjectRef js_object_ref)
 		: JSObject(js_context, js_object_ref) {
+		SetProperty("nativeStack", js_context.CreateString(JSError::GetNativeStack()));
 	}
 
 	JSError::JSError(JSContext js_context, const std::string& message)
 		: JSObject(js_context, MakeError(js_context, { js_context.CreateString(message) })) {
+		SetProperty("nativeStack", js_context.CreateString(JSError::GetNativeStack()));
 	}
 
 	JSError::JSError(JSContext js_context, const detail::js_runtime_error& e)
