@@ -269,7 +269,7 @@ namespace HAL {
 	JSObject::JSObject(const JSContext& js_context, const JSClass& js_class)
 		: js_context__(js_context)
 		, js_object_ref__(JSObjectMake(static_cast<JSContextRef>(js_context), static_cast<JSClassRef>(js_class), nullptr)) {
-
+		JSValue::Protect(static_cast<JSContextRef>(js_context__), js_object_ref__);
 	}
 
 	// For interoperability with the JavaScriptCore API.

@@ -290,6 +290,7 @@ namespace HAL {
 				if (found) {
 					const auto value_ref = static_cast<JSValueRef>(position->second(*export_object_ptr));
 					if (constant_found) {
+						JSValueProtect(static_cast<JSContextRef>(js_context), value_ref);
 						name_to_constant_map__[property_name] = value_ref;
 					}
 					return value_ref;
