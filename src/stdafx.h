@@ -8,4 +8,3 @@
 #include <utility>
 #include <mutex>
 
-#include "HAL/detail/JSBase.hpp"
