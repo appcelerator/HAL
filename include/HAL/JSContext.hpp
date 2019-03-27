@@ -14,6 +14,7 @@
 
 #include <vector>
 #include <unordered_map>
+#include <functional>
 
 namespace HAL {
   
